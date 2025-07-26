@@ -6,7 +6,7 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import { ReportsTab } from './components/ReportsTab';
 import { AuthModal } from './components/AuthModal';
 import { ChecklistData, Problem } from './types/checklist';
-import { saveChecklist } from './services/firebase';
+import { saveChecklist, syncChecklistsToLocal } from './services/firebase';
 import { sendChecklistEmail } from './services/email';
 import { VEHICLE_TYPES, EXTERNAL_CHECKS, INTERNAL_CHECKS, REFRIGERATION_CHECKS, DOCUMENTATION_CHECKS } from './utils/constants';
 import { v4 as uuidv4 } from 'uuid';
@@ -18,6 +18,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [savedChecklists, setSavedChecklists] = useState<ChecklistData[]>([]);
+  const [syncingData, setSyncingData] = useState(false);
   const [formData, setFormData] = useState<ChecklistData>({
     // Dados Iniciais
     date: new Date().toISOString().split('T')[0],
@@ -84,15 +85,29 @@ function App() {
 
   // Load saved checklists from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('checklists');
-    if (saved) {
-      try {
-        setSavedChecklists(JSON.parse(saved));
-      } catch (error) {
-        console.error('Error loading saved checklists:', error);
-      }
-    }
+    loadChecklists();
   }, []);
+
+  const loadChecklists = async () => {
+    setSyncingData(true);
+    try {
+      const checklists = await syncChecklistsToLocal();
+      setSavedChecklists(checklists);
+    } catch (error) {
+      console.error('Erro ao carregar checklists:', error);
+      // Fallback para localStorage
+      const saved = localStorage.getItem('checklists');
+      if (saved) {
+        try {
+          setSavedChecklists(JSON.parse(saved));
+        } catch (parseError) {
+          console.error('Error parsing saved checklists:', parseError);
+        }
+      }
+    } finally {
+      setSyncingData(false);
+    }
+  };
 
   const handleInputChange = (field: keyof ChecklistData, value: any) => {
     setFormData(prev => ({
@@ -169,11 +184,8 @@ function App() {
       // Save to Firestore
       await saveChecklist(finalData);
 
-      // Save to localStorage for reports
-      const existingChecklists = JSON.parse(localStorage.getItem('checklists') || '[]');
-      const updatedChecklists = [...existingChecklists, finalData];
-      localStorage.setItem('checklists', JSON.stringify(updatedChecklists));
-      setSavedChecklists(updatedChecklists);
+      // Recarregar checklists do Firebase
+      await loadChecklists();
 
       // Send email
       await sendChecklistEmail(finalData);
@@ -191,12 +203,15 @@ function App() {
     if (!isAuthenticated) {
       setShowAuthModal(true);
     } else {
+      // Sincronizar dados ao acessar relatórios
+      loadChecklists();
       setActiveTab('reports');
     }
   };
 
   const handleAuthenticate = () => {
     setIsAuthenticated(true);
+    loadChecklists();
     setActiveTab('reports');
   };
 
@@ -223,6 +238,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
       {loading && <LoadingSpinner message="Enviando checklist..." />}
+      {syncingData && <LoadingSpinner message="Sincronizando dados..." />}
       
       <AuthModal
         isOpen={showAuthModal}
@@ -266,7 +282,7 @@ function App() {
                 }`}
               >
                 <BarChart3 className="h-5 w-5" />
-                <span>Relatórios</span>
+                <span>Relatórios {syncingData ? '(Sincronizando...)' : ''}</span>
               </button>
             </div>
           </div>
@@ -476,7 +492,7 @@ function App() {
           </FormSection>
         </form>
         ) : (
-          <ReportsTab checklists={savedChecklists} />
+          <ReportsTab checklists={savedChecklists} onRefresh={loadChecklists} />
         )}
       </div>
     </div>
