@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Download, Calendar, Filter, Image, FileSpreadsheet, FileImage, AlertTriangle, CheckCircle, List, Eye, X } from 'lucide-react';
+import { FileText, Download, Calendar, Filter, Image, FileSpreadsheet, FileImage, AlertTriangle, CheckCircle, List, Eye, X, RefreshCw } from 'lucide-react';
 import { ChecklistData } from '../types/checklist';
 import { FIELD_LABELS, formatDateBR, getFieldLabel } from '../utils/constants';
 import * as XLSX from 'xlsx';
@@ -81,14 +81,16 @@ const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, problems, chec
 
 interface ReportsTabProps {
   checklists: ChecklistData[];
+  onRefresh?: () => void;
 }
 
-export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists }) => {
+export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [filteredChecklists, setFilteredChecklists] = useState<ChecklistData[]>([]);
   const [anomalyFilter, setAnomalyFilter] = useState<'all' | 'with-anomalies' | 'without-anomalies'>('all');
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [photoModal, setPhotoModal] = useState<{
     isOpen: boolean;
     problems: Array<{ description: string; photoUrl?: string }>;
@@ -432,6 +434,17 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists }) => {
     });
   };
 
+  const handleRefresh = async () => {
+    if (onRefresh) {
+      setRefreshing(true);
+      try {
+        await onRefresh();
+      } finally {
+        setRefreshing(false);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PhotoModal
@@ -444,14 +457,24 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists }) => {
       {/* Header */}
       <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 overflow-hidden">
         <div className="bg-gradient-to-r from-orange-600 to-orange-700 px-6 py-4">
-          <h3 className="text-lg font-semibold text-white flex items-center">
-            <FileText className="h-6 w-6 mr-3" />
-            Relatórios de Checklists
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white flex items-center">
+              <FileText className="h-6 w-6 mr-3" />
+              Relatórios de Checklists
+            </h3>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center space-x-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>{refreshing ? 'Sincronizando...' : 'Atualizar'}</span>
+            </button>
+          </div>
         </div>
         <div className="p-6">
           <p className="text-gray-300">
-            Exporte relatórios detalhados dos checklists realizados com filtros personalizados de data.
+            Exporte relatórios detalhados dos checklists realizados com filtros personalizados de data. Os dados são sincronizados automaticamente entre todos os dispositivos.
           </p>
         </div>
       </div>
