@@ -36,7 +36,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div className="flex items-center space-x-3">
             <Lock className="h-6 w-6 text-orange-500" />
-            <h2 className="text-xl font-semibold text-white">Acesso Restrito</h2>
+            <div>
+              <h2 className="text-xl font-semibold text-white">Acesso Restrito</h2>
+              <p className="text-sm text-gray-400">Dados sincronizados em tempo real</p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -49,7 +52,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-2">
-              Digite o código de acesso:
+              Digite o código de acesso para visualizar relatórios:
             </label>
             <input
               type="password"
@@ -63,6 +66,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {error && (
               <p className="text-red-400 text-sm mt-2">{error}</p>
             )}
+          </div>
+
+          <div className="text-xs text-gray-400 bg-gray-700/50 p-3 rounded-lg">
+            <p className="mb-1">ℹ️ <strong>Informação:</strong></p>
+            <p>Os relatórios mostram dados de todos os checklists salvos no sistema, sincronizados automaticamente entre dispositivos.</p>
           </div>
 
           <div className="flex space-x-3">
