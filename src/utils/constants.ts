@@ -73,6 +73,14 @@ export const FIELD_LABELS = {
 
 // Função para formatar data em padrão brasileiro
 export const formatDateBR = (dateString: string): string => {
+  // Se a data já está no formato YYYY-MM-DD, criar a data corretamente
+  if (dateString.includes('-')) {
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    return date.toLocaleDateString('pt-BR');
+  }
+  
+  // Para outros formatos, usar o método padrão
   const date = new Date(dateString);
   return date.toLocaleDateString('pt-BR');
 };
