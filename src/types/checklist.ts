@@ -23,7 +23,7 @@ export interface ChecklistData {
 
   // Sistema de Refrigeração
   refrigerationWorking: boolean;
-  initialTemperature: number | null;
+  initialTemperature: number | string | null;
   coldChamberClean: boolean;
   refrigeratorMotorOk: boolean;
   refrigeratorFuelOk: boolean;
