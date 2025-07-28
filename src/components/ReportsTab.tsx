@@ -317,7 +317,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
         // Basic info
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(`Data: ${checklist.date}`, 20, yPosition);
+        pdf.text(`Data: ${formatDateBR(checklist.date)}`, 20, yPosition);
         pdf.text(`Motorista: ${checklist.driverName}`, 80, yPosition);
         pdf.text(`Placa: ${checklist.licensePlate}`, 140, yPosition);
         yPosition += 6;
