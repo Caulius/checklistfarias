@@ -34,6 +34,7 @@ export interface ChecklistData {
   deliveryDocumentsAvailable: boolean;
   deliveryNotesAvailable: boolean;
   tabletAvailable: boolean;
+  planilhaRodagemFilled: boolean;
 
   // Observações
   generalObservations: string;
