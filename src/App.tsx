@@ -55,6 +55,7 @@ function App() {
     deliveryDocumentsAvailable: false,
     deliveryNotesAvailable: false,
     tabletAvailable: false,
+    planilhaRodagemFilled: false,
 
     // Observações
     generalObservations: '',
