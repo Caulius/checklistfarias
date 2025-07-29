@@ -152,6 +152,7 @@ ID: ${checklistData.id}
       documents_status: checklistData.deliveryDocumentsAvailable ? 'OK' : 'ANOMALIA',
       notes_status: checklistData.deliveryNotesAvailable ? 'OK' : 'ANOMALIA',
       tablet_status: checklistData.tabletAvailable ? 'OK' : 'ANOMALIA',
+      planilha_status: checklistData.planilhaRodagemFilled ? 'OK' : 'ANOMALIA',
       
       // Links das fotos formatados para exibir ao lado do status
       tires_photo_link: getPhotoLink(checklistData.problems, 'tiresCalibrated'),
@@ -177,7 +178,8 @@ ID: ${checklistData.id}
       cnh_photo_link: getPhotoLink(checklistData.problems, 'cnhValid'),
       documents_photo_link: getPhotoLink(checklistData.problems, 'deliveryDocumentsAvailable'),
       notes_photo_link: getPhotoLink(checklistData.problems, 'deliveryNotesAvailable'),
-      tablet_photo_link: getPhotoLink(checklistData.problems, 'tabletAvailable')
+      tablet_photo_link: getPhotoLink(checklistData.problems, 'tabletAvailable'),
+      planilha_photo_link: getPhotoLink(checklistData.problems, 'planilhaRodagemFilled')
     };
 
     console.log('Enviando email com parâmetros:', templateParams);
