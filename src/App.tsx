@@ -220,9 +220,12 @@ function App() {
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">
         <div className="bg-gray-800 border border-gray-700 rounded-xl shadow-lg p-8 max-w-md w-full text-center">
           <CheckCircle className="h-16 w-16 text-orange-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Checklist Enviado!</h2>
+          <h2 className="text-2xl font-bold text-white mb-4">✅ Checklist concluído com sucesso!</h2>
+          <p className="text-gray-300 mb-4">
+            Não se esqueça de preencher a Planilha de Rodagem.
+          </p>
           <p className="text-gray-300 mb-6">
-            Seu checklist foi enviado com sucesso. Os dados foram salvos e um email foi enviado para a equipe de logística.
+            Desejamos uma boa viagem — dirija com atenção e tenha um excelente dia de trabalho!
           </p>
           <button
             onClick={() => window.location.reload()}
