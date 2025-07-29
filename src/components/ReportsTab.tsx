@@ -214,6 +214,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
         [getFieldLabel('deliveryDocumentsAvailable')]: checklist.deliveryDocumentsAvailable ? 'OK' : 'PROBLEMA',
         [getFieldLabel('deliveryNotesAvailable')]: checklist.deliveryNotesAvailable ? 'OK' : 'PROBLEMA',
         [getFieldLabel('tabletAvailable')]: checklist.tabletAvailable ? 'OK' : 'PROBLEMA',
+        [getFieldLabel('planilhaRodagemFilled')]: checklist.planilhaRodagemFilled ? 'OK' : 'PROBLEMA',
         'Problemas Encontrados': checklist.problems.length,
         'Observações': checklist.generalObservations || 'Nenhuma',
         'Fotos dos Problemas': checklist.problems.filter(p => p.photoUrl).length,
