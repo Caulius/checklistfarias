@@ -35,7 +35,6 @@ export const DOCUMENTATION_CHECKS = [
   { key: 'crlvValid', label: 'CRLV em dia', shortLabel: 'CRLV' },
   { key: 'cnhValid', label: 'CNH compatível e válida', shortLabel: 'CNH' },
   { key: 'deliveryDocumentsAvailable', label: 'Pasta com Notas e Taxas de entrega', shortLabel: 'Documentos Entrega' },
-  { key: 'deliveryNotesAvailable', label: 'Pasta com notas e Taxas', shortLabel: 'Notas e Taxas' },
   { key: 'tabletAvailable', label: 'Tablet', shortLabel: 'Tablet' }
 ];
 
