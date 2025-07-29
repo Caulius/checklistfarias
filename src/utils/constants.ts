@@ -35,7 +35,8 @@ export const DOCUMENTATION_CHECKS = [
   { key: 'crlvValid', label: 'CRLV em dia', shortLabel: 'CRLV' },
   { key: 'cnhValid', label: 'CNH compatível e válida', shortLabel: 'CNH' },
   { key: 'deliveryDocumentsAvailable', label: 'Pasta com Notas e Taxas de entrega', shortLabel: 'Documentos Entrega' },
-  { key: 'tabletAvailable', label: 'Tablet', shortLabel: 'Tablet' }
+  { key: 'tabletAvailable', label: 'Tablet', shortLabel: 'Tablet' },
+  { key: 'planilhaRodagemFilled', label: 'Preenchimento Planilha Rodagem', shortLabel: 'Planilha Rodagem' }
 ];
 
 // Mapeamento para tradução dos campos
@@ -67,7 +68,8 @@ export const FIELD_LABELS = {
   cnhValid: 'CNH',
   deliveryDocumentsAvailable: 'Documentos Entrega',
   deliveryNotesAvailable: 'Notas e Taxas',
-  tabletAvailable: 'Tablet'
+  tabletAvailable: 'Tablet',
+  planilhaRodagemFilled: 'Planilha Rodagem'
 };
 
 // Função para formatar data em padrão brasileiro
