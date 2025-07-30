@@ -10,15 +10,18 @@ const USER_ID = 'ZhGrczy5X-gDtmM60';
 emailjs.init(USER_ID);
 
 // Função para obter URL da foto de um problema específico
-const getPhotoUrl = (problems: any[], itemKey: string): string => {
+const getPhotoUrls = (problems: any[], itemKey: string): string[] => {
   const problem = problems.find(p => p.itemKey === itemKey);
-  return problem?.photoUrl || '#';
+  return problem?.photoUrls || [];
 };
 
 // Função para obter link da foto formatado
 const getPhotoLink = (problems: any[], itemKey: string): string => {
   const problem = problems.find(p => p.itemKey === itemKey);
-  return problem?.photoUrl ? ` - ${problem.photoUrl}` : '';
+  if (problem?.photoUrls && problem.photoUrls.length > 0) {
+    return ` - ${problem.photoUrls.join(' | ')}`;
+  }
+  return '';
 };
 
 export const sendChecklistEmail = async (checklistData: any) => {
@@ -43,10 +46,13 @@ export const sendChecklistEmail = async (checklistData: any) => {
 
     // Criar lista de fotos
     const photosList = checklistData.problems
-      .filter((p: any) => p.photoUrl)
-      .map((problem: any, index: number) => 
-        `${index + 1}. ${problem.description}: ${problem.photoUrl}`
-      ).join('\n') || 'Nenhuma foto anexada';
+      .filter((p: any) => p.photoUrls && p.photoUrls.length > 0)
+      .map((problem: any, index: number) => {
+        const photoLinks = problem.photoUrls.map((url: string, photoIndex: number) => 
+          `   Foto ${photoIndex + 1}: ${url}`
+        ).join('\n');
+        return `${index + 1}. ${problem.description}:\n${photoLinks}`;
+      }).join('\n\n') || 'Nenhuma foto anexada';
 
     // Criar resumo completo
     const checklistSummary = `
@@ -89,6 +95,7 @@ DOCUMENTAÇÃO:
 - Documentos Entrega: ${checklistData.deliveryDocumentsAvailable ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'deliveryDocumentsAvailable')}
 - Notas e Taxas: ${checklistData.deliveryNotesAvailable ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'deliveryNotesAvailable')}
 - Tablet: ${checklistData.tabletAvailable ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'tabletAvailable')}
+- Planilha de Rodagem: ${checklistData.planilhaRodagemFilled ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'planilhaRodagemFilled')}
 
 PROBLEMAS ENCONTRADOS: ${checklistData.problems.length}
 ${problemsList}
@@ -114,7 +121,8 @@ ID: ${checklistData.id}
       
       // Contadores
       problems_count: checklistData.problems.length,
-      photos_count: checklistData.problems.filter((p: any) => p.photoUrl).length,
+      photos_count: checklistData.problems.reduce((total: number, p: any) => 
+        total + (p.photoUrls ? p.photoUrls.length : 0), 0),
       
       // Controle de exibição de seções
       has_problems: checklistData.problems.length > 0 ? 'show' : '',
@@ -152,7 +160,7 @@ ID: ${checklistData.id}
       documents_status: checklistData.deliveryDocumentsAvailable ? 'OK' : 'ANOMALIA',
       notes_status: checklistData.deliveryNotesAvailable ? 'OK' : 'ANOMALIA',
       tablet_status: checklistData.tabletAvailable ? 'OK' : 'ANOMALIA',
-      planilha_status: checklistData.planilhaRodagemFilled ? 'OK' : 'ANOMALIA',
+      planilha_rodagem_status: checklistData.planilhaRodagemFilled ? 'OK' : 'ANOMALIA',
       
       // Links das fotos formatados para exibir ao lado do status
       tires_photo_link: getPhotoLink(checklistData.problems, 'tiresCalibrated'),
@@ -179,7 +187,10 @@ ID: ${checklistData.id}
       documents_photo_link: getPhotoLink(checklistData.problems, 'deliveryDocumentsAvailable'),
       notes_photo_link: getPhotoLink(checklistData.problems, 'deliveryNotesAvailable'),
       tablet_photo_link: getPhotoLink(checklistData.problems, 'tabletAvailable'),
-      planilha_photo_link: getPhotoLink(checklistData.problems, 'planilhaRodagemFilled')
+      planilha_rodagem_photo_link: getPhotoLink(checklistData.problems, 'planilhaRodagemFilled'),
+      
+      // Classes CSS para status
+      planilha_rodagem_status_class: checklistData.planilhaRodagemFilled ? 'status-ok' : 'status-problem'
     };
 
     console.log('Enviando email com parâmetros:', templateParams);
