@@ -67,7 +67,6 @@ export const FIELD_LABELS = {
   crlvValid: 'CRLV',
   cnhValid: 'CNH',
   deliveryDocumentsAvailable: 'Documentos Entrega',
-  deliveryNotesAvailable: 'Notas e Taxas',
   tabletAvailable: 'Tablet',
   planilhaRodagemFilled: 'Planilha Rodagem'
 };
