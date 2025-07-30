@@ -117,7 +117,7 @@ function App() {
     }));
   };
 
-  const handleCheckboxChange = (field: keyof ChecklistData, checked: boolean, problemData?: { description: string; photoUrl?: string }) => {
+  const handleCheckboxChange = (field: keyof ChecklistData, checked: boolean, problemData?: { description: string; photoUrls?: string[] }) => {
     setFormData(prev => ({
       ...prev,
       [field]: checked
@@ -127,7 +127,7 @@ function App() {
       const newProblem: Problem = {
         itemKey: field,
         description: problemData.description,
-        photoUrl: problemData.photoUrl
+        photoUrls: problemData.photoUrls || []
       };
 
       setFormData(prev => ({
