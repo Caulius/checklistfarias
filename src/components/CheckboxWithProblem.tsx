@@ -5,7 +5,7 @@ import { uploadToImgBB, convertFileToBase64 } from '../services/imgbb';
 interface CheckboxWithProblemProps {
   label: string;
   checked: boolean;
-  onChange: (checked: boolean, problemData?: { description: string; photoUrls?: string[] }) => void;
+  onChange: (checked: boolean, problemData?: { description: string; photoUrls?: string[]; isUploading?: boolean }) => void;
   itemKey: string;
 }
 
@@ -21,6 +21,7 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [status, setStatus] = useState<'none' | 'ok' | 'problem'>('none');
+  const [uploadProgress, setUploadProgress] = useState<{ [key: number]: boolean }>({});
 
   const handleOkClick = () => {
     setStatus('ok');
@@ -38,18 +39,30 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
 
   const handleProblemSubmit = async () => {
     if (problemDescription.trim()) {
+      // Notificar que o upload está iniciando
+      onChange(false, {
+        description: problemDescription,
+        photoUrls: [],
+        isUploading: true
+      });
+      
       let photoUrls: string[] = [];
       
       // Upload images to ImgBB if photos were selected
       if (selectedFiles.length > 0) {
         setUploadingImage(true);
+        setUploadProgress({});
         try {
-          for (const file of selectedFiles) {
+          for (let i = 0; i < selectedFiles.length; i++) {
+            const file = selectedFiles[i];
+            setUploadProgress(prev => ({ ...prev, [i]: false }));
+            
             const base64Image = await convertFileToBase64(file);
             const uploadedUrl = await uploadToImgBB(base64Image);
             
             if (uploadedUrl) {
               photoUrls.push(uploadedUrl);
+              setUploadProgress(prev => ({ ...prev, [i]: true }));
             }
           }
           
@@ -61,12 +74,15 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
           alert('Erro ao fazer upload das imagens. O problema será registrado sem fotos.');
         } finally {
           setUploadingImage(false);
+          setUploadProgress({});
         }
       }
       
+      // Notificar que o upload foi concluído
       onChange(false, {
         description: problemDescription,
-        photoUrls
+        photoUrls,
+        isUploading: false
       });
       
       setShowProblemForm(false);
@@ -81,6 +97,7 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
     setSelectedFiles([]);
     setPhotoPreviews([]);
     setStatus('none');
+    setUploadProgress({});
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -241,7 +258,14 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
               {uploadingImage ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Enviando fotos...</span>
+                  <span>
+                    Enviando fotos... 
+                    {Object.keys(uploadProgress).length > 0 && (
+                      <span className="ml-1">
+                        ({Object.values(uploadProgress).filter(Boolean).length}/{Object.keys(uploadProgress).length})
+                      </span>
+                    )}
+                  </span>
                 </>
               ) : (
                 <>
