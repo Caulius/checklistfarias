@@ -187,10 +187,7 @@ ID: ${checklistData.id}
       documents_photo_link: getPhotoLink(checklistData.problems, 'deliveryDocumentsAvailable'),
       notes_photo_link: getPhotoLink(checklistData.problems, 'deliveryNotesAvailable'),
       tablet_photo_link: getPhotoLink(checklistData.problems, 'tabletAvailable'),
-      planilha_rodagem_photo_link: getPhotoLink(checklistData.problems, 'planilhaRodagemFilled'),
-      
-      // Classes CSS para status
-      planilha_rodagem_status_class: checklistData.planilhaRodagemFilled ? 'status-ok' : 'status-problem'
+      planilha_rodagem_status: checklistData.planilhaRodagemFilled ? 'OK' : 'ANOMALIA'
     };
 
     console.log('Enviando email com parâmetros:', templateParams);
