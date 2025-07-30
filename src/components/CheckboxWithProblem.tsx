@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Camera, AlertTriangle, X, CheckCircle, XCircle, Image, CameraIcon, Upload, Loader2 } from 'lucide-react';
+import { Camera, AlertTriangle, X, CheckCircle, XCircle, Image, CameraIcon, Upload, Loader2, Plus, Trash2 } from 'lucide-react';
 import { uploadToImgBB, convertFileToBase64 } from '../services/imgbb';
 
 interface CheckboxWithProblemProps {
   label: string;
   checked: boolean;
-  onChange: (checked: boolean, problemData?: { description: string; photoUrl?: string }) => void;
+  onChange: (checked: boolean, problemData?: { description: string; photoUrls?: string[] }) => void;
   itemKey: string;
 }
 
@@ -17,8 +17,8 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
 }) => {
   const [showProblemForm, setShowProblemForm] = useState(false);
   const [problemDescription, setProblemDescription] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [status, setStatus] = useState<'none' | 'ok' | 'problem'>('none');
 
@@ -26,8 +26,8 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
     setStatus('ok');
     setShowProblemForm(false);
     setProblemDescription('');
-    setSelectedFile(null);
-    setPhotoPreview(null);
+    setSelectedFiles([]);
+    setPhotoPreviews([]);
     onChange(true);
   };
 
@@ -38,21 +38,27 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
 
   const handleProblemSubmit = async () => {
     if (problemDescription.trim()) {
-      let photoUrl: string | undefined;
+      let photoUrls: string[] = [];
       
-      // Upload image to ImgBB if a photo was selected
-      if (selectedFile) {
+      // Upload images to ImgBB if photos were selected
+      if (selectedFiles.length > 0) {
         setUploadingImage(true);
         try {
-          const base64Image = await convertFileToBase64(selectedFile);
-          photoUrl = await uploadToImgBB(base64Image);
+          for (const file of selectedFiles) {
+            const base64Image = await convertFileToBase64(file);
+            const uploadedUrl = await uploadToImgBB(base64Image);
+            
+            if (uploadedUrl) {
+              photoUrls.push(uploadedUrl);
+            }
+          }
           
-          if (!photoUrl) {
-            alert('Erro ao fazer upload da imagem. O problema será registrado sem foto.');
+          if (photoUrls.length === 0 && selectedFiles.length > 0) {
+            alert('Erro ao fazer upload das imagens. O problema será registrado sem fotos.');
           }
         } catch (error) {
-          console.error('Erro no upload da imagem:', error);
-          alert('Erro ao fazer upload da imagem. O problema será registrado sem foto.');
+          console.error('Erro no upload das imagens:', error);
+          alert('Erro ao fazer upload das imagens. O problema será registrado sem fotos.');
         } finally {
           setUploadingImage(false);
         }
@@ -60,7 +66,7 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
       
       onChange(false, {
         description: problemDescription,
-        photoUrl
+        photoUrls
       });
       
       setShowProblemForm(false);
@@ -72,26 +78,34 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
   const handleProblemCancel = () => {
     setShowProblemForm(false);
     setProblemDescription('');
-    setSelectedFile(null);
-    setPhotoPreview(null);
+    setSelectedFiles([]);
+    setPhotoPreviews([]);
     setStatus('none');
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPhotoPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      const newFiles = [...selectedFiles, ...files];
+      setSelectedFiles(newFiles);
+      
+      // Generate previews for new files
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPhotoPreviews(prev => [...prev, e.target?.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
+    
+    // Reset input
+    e.target.value = '';
   };
 
-  const removePhoto = () => {
-    setSelectedFile(null);
-    setPhotoPreview(null);
+  const removePhoto = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setPhotoPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -147,52 +161,74 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <Camera className="h-5 w-5 text-gray-300" />
-              <span className="text-gray-200 font-medium">Foto do problema (opcional):</span>
+              <span className="text-gray-200 font-medium">Fotos do problema (opcional):</span>
+              <span className="text-gray-400 text-sm">({photoPreviews.length} foto{photoPreviews.length !== 1 ? 's' : ''})</span>
             </div>
 
-            {!photoPreview ? (
+            {/* Botões para adicionar fotos */}
+            <div className="space-y-3">
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-gray-500 hover:bg-gray-700/30 transition-all">
                     <CameraIcon className="h-6 w-6 text-gray-400 mb-1" />
+                    <Plus className="h-6 w-6 text-gray-400 mb-1" />
                     <span className="text-sm text-gray-300 text-center">Tirar Foto</span>
                     <input
                       type="file"
                       accept="image/*"
                       capture="environment"
                       onChange={handlePhotoChange}
+                      multiple
                       className="hidden"
                     />
                   </label>
                   
                   <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-gray-500 hover:bg-gray-700/30 transition-all">
                     <Image className="h-6 w-6 text-gray-400 mb-1" />
-                    <span className="text-sm text-gray-300 text-center">Galeria</span>
+                    <Plus className="h-6 w-6 text-gray-400 mb-1" />
+                    <span className="text-sm text-gray-300 text-center">Da Galeria</span>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handlePhotoChange}
+                      multiple
                       className="hidden"
                     />
                   </label>
                 </div>
               </div>
-            ) : (
-              <div className="relative">
-                <img
-                  src={photoPreview}
-                  alt="Foto do problema"
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                <button
-                  type="button"
-                  onClick={removePhoto}
-                  className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            )}
+              
+              {/* Preview das fotos selecionadas */}
+              {photoPreviews.length > 0 && (
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-300 font-medium">
+                    Fotos selecionadas ({photoPreviews.length}):
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
+                    {photoPreviews.map((preview, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={preview}
+                          alt={`Foto do problema ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(index)}
+                          className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 transition-colors"
+                          title="Remover foto"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                        <div className="absolute bottom-1 left-1 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                          {index + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex space-x-3">
@@ -205,7 +241,7 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
               {uploadingImage ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Enviando foto...</span>
+                  <span>Enviando fotos...</span>
                 </>
               ) : (
                 <>
