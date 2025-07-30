@@ -20,10 +20,40 @@ interface PhotoModalProps {
 const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, problems, checklistInfo }) => {
   if (!isOpen) return null;
 
-  const problemsWithPhotos = problems.filter(p => Array.isArray(p.photoUrls) && p.photoUrls.length > 0);
-  
+  // Debug: Log dos problemas recebidos
   console.log('PhotoModal - Problemas recebidos:', problems);
-  console.log('PhotoModal - Problemas com fotos:', problemsWithPhotos);
+  console.log('PhotoModal - Checklist info:', checklistInfo);
+  
+  const problemsWithPhotos = problems.filter(p => {
+    console.log('Verificando problema:', {
+      description: p.description,
+      photoUrls: p.photoUrls,
+      photoUrlsType: typeof p.photoUrls,
+      isArray: Array.isArray(p.photoUrls),
+      length: p.photoUrls ? p.photoUrls.length : 'undefined',
+      hasPhotos: p.photoUrls && Array.isArray(p.photoUrls) && p.photoUrls.length > 0
+    });
+    
+    // Verificar múltiplos formatos possíveis
+    if (Array.isArray(p.photoUrls) && p.photoUrls.length > 0) {
+      return true;
+    }
+    
+    // Verificar se é uma string não vazia (formato antigo)
+    if (typeof p.photoUrls === 'string' && p.photoUrls.trim() !== '') {
+      return true;
+    }
+    
+    // Verificar propriedade photoUrl (singular)
+    if ((p as any).photoUrl && typeof (p as any).photoUrl === 'string' && (p as any).photoUrl.trim() !== '') {
+      return true;
+    }
+    
+    return false;
+  });
+  
+  console.log('PhotoModal - Problemas com fotos filtrados:', problemsWithPhotos);
+  
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -56,7 +86,21 @@ const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, problems, chec
                   <h3 className="text-white font-medium mb-3">Problema {index + 1}:</h3>
                   <p className="text-gray-300 mb-4">{problem.description}</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {problem.photoUrls?.map((photoUrl, photoIndex) => (
+                    {(() => {
+                      let photoUrls: string[] = [];
+                      
+                      // Tratar diferentes formatos de URLs de fotos
+                      if (Array.isArray(problem.photoUrls)) {
+                        photoUrls = problem.photoUrls;
+                      } else if (typeof problem.photoUrls === 'string' && problem.photoUrls.trim() !== '') {
+                        photoUrls = [problem.photoUrls];
+                      } else if ((problem as any).photoUrl && typeof (problem as any).photoUrl === 'string') {
+                        photoUrls = [(problem as any).photoUrl];
+                      }
+                      
+                      console.log('PhotoModal - URLs processadas para problema:', photoUrls);
+                      
+                      return photoUrls.map((photoUrl, photoIndex) => (
                       <div key={photoIndex} className="relative">
                         <img
                           src={photoUrl}
@@ -77,7 +121,8 @@ const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, problems, chec
                           Foto {photoIndex + 1}
                         </div>
                       </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </div>
               ))}
@@ -101,15 +146,8 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
   const [anomalyFilter, setAnomalyFilter] = useState<'all' | 'with-anomalies' | 'without-anomalies'>('all');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [photoModal, setPhotoModal] = useState<{
-    isOpen: boolean;
-    problems: Array<{ description: string; photoUrl?: string }>;
-    checklistInfo: { date: string; driverName: string; licensePlate: string };
-  }>({
-    isOpen: false,
-    problems: [],
-    checklistInfo: { date: '', driverName: '', licensePlate: '' }
-  });
+  const [selectedChecklist, setSelectedChecklist] = useState<ChecklistData | null>(null);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
 
   useEffect(() => {
     // Set default dates (last 30 days)
@@ -481,34 +519,34 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
   };
 
   const openPhotoModal = (checklist: ChecklistData) => {
-    console.log('Abrindo modal para checklist:', {
+    console.log('=== ABRINDO MODAL DE FOTOS ===');
+    console.log('Checklist selecionado:', {
       id: checklist.id,
       driverName: checklist.driverName,
-      problems: checklist.problems.map(p => ({
+      licensePlate: checklist.licensePlate,
+      date: checklist.date,
+      problemsCount: checklist.problems.length,
+      problems: checklist.problems.map((p, index) => ({
+        index,
         itemKey: p.itemKey,
         description: p.description,
         photoUrls: p.photoUrls,
-        photoCount: p.photoUrls ? p.photoUrls.length : 0
+        photoUrlsType: typeof p.photoUrls,
+        photoUrlsIsArray: Array.isArray(p.photoUrls),
+        photoUrlsLength: p.photoUrls ? (Array.isArray(p.photoUrls) ? p.photoUrls.length : 'not array') : 'undefined',
+        photoUrl: (p as any).photoUrl, // Verificar formato antigo
+        allKeys: Object.keys(p)
       }))
     });
+    console.log('=== FIM DEBUG MODAL ===');
     
-    setPhotoModal({
-      isOpen: true,
-      problems: checklist.problems,
-      checklistInfo: {
-        date: checklist.date,
-        driverName: checklist.driverName,
-        licensePlate: checklist.licensePlate
-      }
-    });
+    setSelectedChecklist(checklist);
+    setIsPhotoModalOpen(true);
   };
 
   const closePhotoModal = () => {
-    setPhotoModal({
-      isOpen: false,
-      problems: [],
-      checklistInfo: { date: '', driverName: '', licensePlate: '' }
-    });
+    setSelectedChecklist(null);
+    setIsPhotoModalOpen(false);
   };
 
   const handleRefresh = async () => {
@@ -524,12 +562,18 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
 
   return (
     <div className="space-y-6">
-      <PhotoModal
-        isOpen={photoModal.isOpen}
-        onClose={closePhotoModal}
-        problems={photoModal.problems}
-        checklistInfo={photoModal.checklistInfo}
-      />
+      {selectedChecklist && (
+        <PhotoModal
+          isOpen={isPhotoModalOpen}
+          onClose={closePhotoModal}
+          problems={selectedChecklist.problems}
+          checklistInfo={{
+            date: formatDateBR(selectedChecklist.date),
+            driverName: selectedChecklist.driverName,
+            licensePlate: selectedChecklist.licensePlate
+          }}
+        />
+      )}
       
       {/* Header */}
       <div className="bg-gray-800 rounded-xl shadow-sm border border-gray-700 overflow-hidden">
@@ -790,7 +834,12 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
                           }`}
                         >
                           {checklist.problems.length} problema(s)
-                          {checklist.problems.some(p => Array.isArray(p.photoUrls) && p.photoUrls.length > 0) && (
+                          {checklist.problems.some(p => {
+                            // Verificar se tem fotos em qualquer formato
+                            return (Array.isArray(p.photoUrls) && p.photoUrls.length > 0) ||
+                                   (typeof p.photoUrls === 'string' && p.photoUrls.trim() !== '') ||
+                                   ((p as any).photoUrl && typeof (p as any).photoUrl === 'string' && (p as any).photoUrl.trim() !== '');
+                          }) && (
                             <Image className="h-3 w-3 inline ml-1" />
                           )}
                         </button>
