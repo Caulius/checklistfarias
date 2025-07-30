@@ -19,6 +19,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [savedChecklists, setSavedChecklists] = useState<ChecklistData[]>([]);
   const [syncingData, setSyncingData] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<ChecklistData>({
     // Dados Iniciais
     date: new Date().toISOString().split('T')[0],
@@ -117,11 +118,22 @@ function App() {
     }));
   };
 
-  const handleCheckboxChange = (field: keyof ChecklistData, checked: boolean, problemData?: { description: string; photoUrls?: string[] }) => {
+  const handleCheckboxChange = (field: keyof ChecklistData, checked: boolean, problemData?: { description: string; photoUrls?: string[]; isUploading?: boolean }) => {
     setFormData(prev => ({
       ...prev,
       [field]: checked
     }));
+
+    // Gerenciar estado de upload
+    if (problemData?.isUploading === true) {
+      setUploadingPhotos(prev => new Set([...prev, field]));
+    } else if (problemData?.isUploading === false) {
+      setUploadingPhotos(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(field);
+        return newSet;
+      });
+    }
 
     if (!checked && problemData) {
       const newProblem: Problem = {
@@ -161,10 +173,18 @@ function App() {
     return true;
   };
 
+  const hasUploadingPhotos = uploadingPhotos.size > 0;
+  const isFormDisabled = loading || !formData.declarationAccepted || hasUploadingPhotos;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
+    
+    if (hasUploadingPhotos) {
+      alert('Aguarde o upload de todas as fotos ser concluído antes de finalizar o checklist.');
+      return;
+    }
 
     setLoading(true);
 
@@ -506,11 +526,31 @@ function App() {
 
               <button
                 type="submit"
-                disabled={loading || !formData.declarationAccepted}
-                className="w-full bg-gradient-to-r from-orange-600 to-orange-700 text-white py-4 px-6 rounded-lg hover:from-orange-700 hover:to-orange-800 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed transition-all font-semibold text-lg shadow-lg"
+                disabled={isFormDisabled}
+                className={`w-full py-4 px-6 rounded-lg transition-all font-semibold text-lg shadow-lg ${
+                  isFormDisabled
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-orange-600 to-orange-700 text-white hover:from-orange-700 hover:to-orange-800'
+                }`}
               >
-                {loading ? 'Enviando...' : 'Finalizar Checklist'}
+                {loading ? 'Enviando...' : 
+                 hasUploadingPhotos ? `Aguardando upload das fotos... (${uploadingPhotos.size} pendente${uploadingPhotos.size !== 1 ? 's' : ''})` : 
+                 'Finalizar Checklist'}
               </button>
+              
+              {hasUploadingPhotos && (
+                <div className="mt-3 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
+                  <div className="flex items-center space-x-2 text-yellow-300">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm font-medium">
+                      Upload em andamento - {uploadingPhotos.size} foto{uploadingPhotos.size !== 1 ? 's' : ''} sendo enviada{uploadingPhotos.size !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p className="text-yellow-200 text-xs mt-1">
+                    O checklist será liberado automaticamente quando todas as fotos forem carregadas.
+                  </p>
+                </div>
+              )}
               
               <div className="text-center mt-6 pt-4 border-t border-gray-700">
                 <p className="text-xs text-gray-400">
