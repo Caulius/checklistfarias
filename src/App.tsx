@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, FileText, Settings, Thermometer, CheckCircle, User, Calendar, BarChart3 } from 'lucide-react';
+import { Truck, FileText, Settings, Thermometer, CheckCircle, User, Calendar, BarChart3, Loader2 } from 'lucide-react';
 import { FormSection } from './components/FormSection';
 import { CheckboxWithProblem } from './components/CheckboxWithProblem';
 import { LoadingSpinner } from './components/LoadingSpinner';
