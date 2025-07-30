@@ -20,7 +20,10 @@ interface PhotoModalProps {
 const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, problems, checklistInfo }) => {
   if (!isOpen) return null;
 
-  const problemsWithPhotos = problems.filter(p => p.photoUrls && p.photoUrls.length > 0);
+  const problemsWithPhotos = problems.filter(p => Array.isArray(p.photoUrls) && p.photoUrls.length > 0);
+  
+  console.log('PhotoModal - Problemas recebidos:', problems);
+  console.log('PhotoModal - Problemas com fotos:', problemsWithPhotos);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -187,6 +190,38 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
     setLoading(true);
     
     try {
+      // Debug detalhado: Log para verificar a estrutura dos dados
+      console.log('=== DEBUG DETALHADO DOS CHECKLISTS ===');
+      filteredChecklists.forEach((checklist, index) => {
+        console.log(`Checklist ${index + 1}:`, {
+          id: checklist.id,
+          driverName: checklist.driverName,
+          licensePlate: checklist.licensePlate,
+          problemsCount: checklist.problems.length,
+          problems: checklist.problems.map((problem, pIndex) => {
+            console.log(`  Problema ${pIndex + 1}:`, {
+              itemKey: problem.itemKey,
+              description: problem.description,
+              photoUrls: problem.photoUrls,
+              photoUrlsType: typeof problem.photoUrls,
+              photoUrlsIsArray: Array.isArray(problem.photoUrls),
+              photoUrlsLength: problem.photoUrls ? problem.photoUrls.length : 'undefined',
+              hasPhotos: problem.photoUrls && Array.isArray(problem.photoUrls) && problem.photoUrls.length > 0
+            });
+            return {
+              itemKey: problem.itemKey,
+              description: problem.description,
+              photoUrls: problem.photoUrls,
+              photoUrlsType: typeof problem.photoUrls,
+              photoUrlsIsArray: Array.isArray(problem.photoUrls),
+              photoUrlsLength: problem.photoUrls ? problem.photoUrls.length : 'undefined',
+              hasPhotos: problem.photoUrls && Array.isArray(problem.photoUrls) && problem.photoUrls.length > 0
+            };
+          })
+        });
+      });
+      console.log('=== FIM DEBUG DETALHADO ===');
+      
       const workbook = XLSX.utils.book_new();
       
       // Prepare data for Excel
@@ -224,7 +259,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
         [getFieldLabel('planilhaRodagemFilled')]: checklist.planilhaRodagemFilled ? 'OK' : 'PROBLEMA',
         'Problemas Encontrados': checklist.problems.length,
         'Observações': checklist.generalObservations || 'Nenhuma',
-        'Fotos dos Problemas': checklist.problems.filter(p => p.photoUrl).length,
+        'Fotos dos Problemas': checklist.problems.reduce((total, p) => total + (p.photoUrls ? p.photoUrls.length : 0), 0),
         'ID': checklist.id
       }));
 
@@ -239,7 +274,30 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
           'Placa': checklist.licensePlate,
           'Item': getFieldLabel(problem.itemKey),
           'Descrição do Problema': problem.description,
-          'Link da Foto': problem.photoUrl || 'Sem foto',
+          'Link da Foto': (() => {
+            console.log(`Processando foto para problema: ${problem.description}`, {
+              photoUrls: problem.photoUrls,
+              type: typeof problem.photoUrls,
+              isArray: Array.isArray(problem.photoUrls),
+              length: problem.photoUrls ? problem.photoUrls.length : 'undefined'
+            });
+            
+            if (problem.photoUrls && Array.isArray(problem.photoUrls) && problem.photoUrls.length > 0) {
+              return problem.photoUrls.join(' | ');
+            }
+            
+            // Verificar se é uma string (caso antigo)
+            if (typeof problem.photoUrls === 'string' && problem.photoUrls.trim() !== '') {
+              return problem.photoUrls;
+            }
+            
+            // Verificar se existe uma propriedade photoUrl (singular)
+            if ((problem as any).photoUrl && typeof (problem as any).photoUrl === 'string') {
+              return (problem as any).photoUrl;
+            }
+            
+            return 'Sem foto';
+          })(),
           'ID Checklist': checklist.id
         }))
       );
@@ -423,6 +481,17 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
   };
 
   const openPhotoModal = (checklist: ChecklistData) => {
+    console.log('Abrindo modal para checklist:', {
+      id: checklist.id,
+      driverName: checklist.driverName,
+      problems: checklist.problems.map(p => ({
+        itemKey: p.itemKey,
+        description: p.description,
+        photoUrls: p.photoUrls,
+        photoCount: p.photoUrls ? p.photoUrls.length : 0
+      }))
+    });
+    
     setPhotoModal({
       isOpen: true,
       problems: checklist.problems,
@@ -721,7 +790,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
                           }`}
                         >
                           {checklist.problems.length} problema(s)
-                          {checklist.problems.some(p => p.photoUrls && p.photoUrls.length > 0) && (
+                          {checklist.problems.some(p => Array.isArray(p.photoUrls) && p.photoUrls.length > 0) && (
                             <Image className="h-3 w-3 inline ml-1" />
                           )}
                         </button>
