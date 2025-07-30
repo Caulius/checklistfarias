@@ -9,7 +9,7 @@ import html2canvas from 'html2canvas';
 interface PhotoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  problems: Array<{ description: string; photoUrl?: string }>;
+  problems: Array<{ description: string; photoUrls?: string[] }>;
   checklistInfo: {
     date: string;
     driverName: string;
@@ -20,7 +20,7 @@ interface PhotoModalProps {
 const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, problems, checklistInfo }) => {
   if (!isOpen) return null;
 
-  const problemsWithPhotos = problems.filter(p => p.photoUrl);
+  const problemsWithPhotos = problems.filter(p => p.photoUrls && p.photoUrls.length > 0);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -52,22 +52,29 @@ const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, problems, chec
                 <div key={index} className="bg-gray-700 rounded-lg p-4">
                   <h3 className="text-white font-medium mb-3">Problema {index + 1}:</h3>
                   <p className="text-gray-300 mb-4">{problem.description}</p>
-                  <div className="relative">
-                    <img
-                      src={problem.photoUrl}
-                      alt={`Foto do problema: ${problem.description}`}
-                      className="w-full max-w-md mx-auto rounded-lg shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => window.open(problem.photoUrl, '_blank')}
-                    />
-                    <div className="absolute top-2 right-2">
-                      <button
-                        onClick={() => window.open(problem.photoUrl, '_blank')}
-                        className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all"
-                        title="Abrir em nova aba"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {problem.photoUrls?.map((photoUrl, photoIndex) => (
+                      <div key={photoIndex} className="relative">
+                        <img
+                          src={photoUrl}
+                          alt={`Foto ${photoIndex + 1} do problema: ${problem.description}`}
+                          className="w-full rounded-lg shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => window.open(photoUrl, '_blank')}
+                        />
+                        <div className="absolute top-2 right-2">
+                          <button
+                            onClick={() => window.open(photoUrl, '_blank')}
+                            className="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-all"
+                            title="Abrir em nova aba"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-sm px-2 py-1 rounded">
+                          Foto {photoIndex + 1}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -714,7 +721,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
                           }`}
                         >
                           {checklist.problems.length} problema(s)
-                          {checklist.problems.some(p => p.photoUrl) && (
+                          {checklist.problems.some(p => p.photoUrls && p.photoUrls.length > 0) && (
                             <Image className="h-3 w-3 inline ml-1" />
                           )}
                         </button>
