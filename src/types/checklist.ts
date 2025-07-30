@@ -58,7 +58,7 @@ export interface ChecklistData {
 export interface Problem {
   itemKey: string;
   description: string;
-  photoUrl?: string;
+  photoUrls?: string[];
 }
 
 export interface ChecklistItem {
