@@ -59,6 +59,7 @@ export interface Problem {
   itemKey: string;
   description: string;
   photoUrls?: string[];
+  isUploading?: boolean;
 }
 
 export interface ChecklistItem {
