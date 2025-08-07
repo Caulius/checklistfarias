@@ -187,7 +187,7 @@ ID: ${checklistData.id}
       documents_photo_link: getPhotoLink(checklistData.problems, 'deliveryDocumentsAvailable'),
       notes_photo_link: getPhotoLink(checklistData.problems, 'deliveryNotesAvailable'),
       tablet_photo_link: getPhotoLink(checklistData.problems, 'tabletAvailable'),
-      planilha_rodagem_status: checklistData.planilhaRodagemFilled ? 'OK' : 'ANOMALIA'
+      planilha_rodagem_photo_link: getPhotoLink(checklistData.problems, 'planilhaRodagemFilled')
     };
 
     console.log('Enviando email com parâmetros:', templateParams);
