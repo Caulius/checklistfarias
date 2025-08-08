@@ -65,8 +65,6 @@ DADOS GERAIS:
 - Motorista: ${checklistData.driverName}
 - Tipo: ${getVehicleTypeLabel(checklistData.vehicleType)}
 - Placa: ${checklistData.licensePlate}
-- Temperatura: ${checklistData.initialTemperature || 'N/A'}°C
-- Temperatura Programada: ${checklistData.programmedTemperature || 'N/A'}°C
 
 VERIFICAÇÃO EXTERNA:
 - Pneus: ${checklistData.tiresCalibrated ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'tiresCalibrated')}
@@ -85,6 +83,8 @@ VERIFICAÇÃO INTERNA:
 - Cintos: ${checklistData.seatbeltsWorking ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'seatbeltsWorking')}
 
 SISTEMA DE REFRIGERAÇÃO:
+- Temperatura Inicial: ${checklistData.initialTemperature || 'N/A'}°C
+- Temperatura Programada: ${checklistData.programmedTemperature || 'N/A'}°C
 - Equipamento: ${checklistData.refrigerationWorking ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'refrigerationWorking')}
 - Baú Limpo: ${checklistData.coldChamberClean ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'coldChamberClean')}
 - Motor Refrigeração: ${checklistData.refrigeratorMotorOk ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'refrigeratorMotorOk')}
@@ -189,7 +189,7 @@ ID: ${checklistData.id}
       documents_photo_link: getPhotoLink(checklistData.problems, 'deliveryDocumentsAvailable'),
       notes_photo_link: getPhotoLink(checklistData.problems, 'deliveryNotesAvailable'),
       tablet_photo_link: getPhotoLink(checklistData.problems, 'tabletAvailable'),
-      planilha_rodagem_status: checklistData.planilhaRodagemFilled ? 'OK' : 'ANOMALIA'
+      planilha_rodagem_photo_link: getPhotoLink(checklistData.problems, 'planilhaRodagemFilled')
     };
 
     console.log('Enviando email com parâmetros:', templateParams);
