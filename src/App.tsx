@@ -46,6 +46,7 @@ function App() {
     // Sistema de Refrigeração
     refrigerationWorking: false,
     initialTemperature: null,
+    programmedTemperature: null,
     coldChamberClean: false,
     refrigeratorMotorOk: false,
     refrigeratorFuelOk: false,
@@ -468,6 +469,45 @@ function App() {
                 />
                 <p className="mt-2 text-sm text-gray-400">
                   Digite a temperatura exata mostrada no display do veículo
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-2">
+                  Temperatura Programada (°C)
+                </label>
+                <input
+                  type="text"
+                  value={formData.programmedTemperature || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty string
+                    if (value === '') {
+                      handleInputChange('programmedTemperature', null);
+                      return;
+                    }
+                    
+                    // Allow only valid temperature patterns: -15, -15.5, -15,5, 15, 15.5, 15,5
+                    if (/^-?\d*[.,]?\d*$/.test(value)) {
+                      // Don't parse incomplete inputs like "-" or "15."
+                      if (value === '-' || value.endsWith('.') || value.endsWith(',')) {
+                        // Just update the display value without parsing
+                        handleInputChange('programmedTemperature', value);
+                      } else {
+                        // Parse complete values
+                        const normalizedValue = value.replace(',', '.');
+                        const numericValue = parseFloat(normalizedValue);
+                        if (!isNaN(numericValue)) {
+                          handleInputChange('programmedTemperature', numericValue);
+                        }
+                      }
+                    }
+                  }}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 text-center text-lg"
+                  placeholder="Ex: -18.0 ou -15.5"
+                />
+                <p className="mt-2 text-sm text-gray-400">
+                  Digite a temperatura programada no equipamento
                 </p>
               </div>
             </div>
