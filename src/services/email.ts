@@ -66,6 +66,7 @@ DADOS GERAIS:
 - Tipo: ${getVehicleTypeLabel(checklistData.vehicleType)}
 - Placa: ${checklistData.licensePlate}
 - Temperatura: ${checklistData.initialTemperature || 'N/A'}°C
+- Temperatura Programada: ${checklistData.programmedTemperature || 'N/A'}°C
 
 VERIFICAÇÃO EXTERNA:
 - Pneus: ${checklistData.tiresCalibrated ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'tiresCalibrated')}
@@ -118,6 +119,7 @@ ID: ${checklistData.id}
       checklist_date: new Date().toLocaleDateString('pt-BR'),
       vehicle_type: getVehicleTypeLabel(checklistData.vehicleType),
       initial_temperature: checklistData.initialTemperature || 'N/A',
+      programmed_temperature: checklistData.programmedTemperature || 'N/A',
       
       // Contadores
       problems_count: checklistData.problems.length,
@@ -187,7 +189,7 @@ ID: ${checklistData.id}
       documents_photo_link: getPhotoLink(checklistData.problems, 'deliveryDocumentsAvailable'),
       notes_photo_link: getPhotoLink(checklistData.problems, 'deliveryNotesAvailable'),
       tablet_photo_link: getPhotoLink(checklistData.problems, 'tabletAvailable'),
-      planilha_rodagem_photo_link: getPhotoLink(checklistData.problems, 'planilhaRodagemFilled')
+      planilha_rodagem_status: checklistData.planilhaRodagemFilled ? 'OK' : 'ANOMALIA'
     };
 
     console.log('Enviando email com parâmetros:', templateParams);
