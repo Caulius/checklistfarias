@@ -215,6 +215,10 @@ Checklist Veículo - {{license_plate}} - {{driver_name}} - {{checklist_date}}
                         <span class="info-label">Temperatura Inicial:</span>
                         <span class="info-value">{{initial_temperature}}°C</span>
                     </div>
+                    <div class="info-item">
+                        <span class="info-label">Temperatura Programada:</span>
+                        <span class="info-value">{{programmed_temperature}}°C</span>
+                    </div>
                 </div>
             </div>
 
