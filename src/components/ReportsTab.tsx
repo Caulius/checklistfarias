@@ -124,6 +124,10 @@ const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, problems, chec
                       ));
                     })()}
                   </div>
+                    <div class="info-item">
+                        <span class="info-label">Temperatura Programada:</span>
+                        <span class="info-value">{{programmed_temperature}}°C</span>
+                    </div>
                 </div>
               ))}
             </div>
@@ -273,6 +277,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
                            checklist.vehicleType === 'trailer' ? 'Carreta' : checklist.vehicleType,
         'Placa': checklist.licensePlate,
         'Temperatura Inicial': checklist.initialTemperature ? `${checklist.initialTemperature}°C` : 'N/A',
+        'Temperatura Programada': checklist.programmedTemperature ? `${checklist.programmedTemperature}°C` : 'N/A',
         [getFieldLabel('tiresCalibrated')]: checklist.tiresCalibrated ? 'OK' : 'PROBLEMA',
         [getFieldLabel('lightsWorking')]: checklist.lightsWorking ? 'OK' : 'PROBLEMA',
         [getFieldLabel('mirrorsGlassOk')]: checklist.mirrorsGlassOk ? 'OK' : 'PROBLEMA',
@@ -428,6 +433,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
 
         pdf.text(`Tipo: ${checklist.vehicleType}`, 20, yPosition);
         pdf.text(`Temperatura: ${checklist.initialTemperature || 'N/A'}°C`, 80, yPosition);
+        pdf.text(`Temp. Programada: ${checklist.programmedTemperature || 'N/A'}°C`, 140, yPosition);
         yPosition += 10;
 
         // Problems
