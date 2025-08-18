@@ -35,6 +35,7 @@ export const DOCUMENTATION_CHECKS = [
   { key: 'crlvValid', label: 'CRLV em dia', shortLabel: 'CRLV' },
   { key: 'cnhValid', label: 'CNH compatível e válida', shortLabel: 'CNH' },
   { key: 'deliveryDocumentsAvailable', label: 'Pasta com Notas e Taxas de entrega', shortLabel: 'Documentos Entrega' },
+  { key: 'deliveryNotesAvailable', label: 'Notas e Taxas disponíveis', shortLabel: 'Notas e Taxas' },
   { key: 'tabletAvailable', label: 'Tablet', shortLabel: 'Tablet' },
   { key: 'planilhaRodagemFilled', label: 'Preenchimento Planilha Rodagem', shortLabel: 'Planilha Rodagem' }
 ];
@@ -67,6 +68,7 @@ export const FIELD_LABELS = {
   crlvValid: 'CRLV',
   cnhValid: 'CNH',
   deliveryDocumentsAvailable: 'Documentos Entrega',
+  deliveryNotesAvailable: 'Notas e Taxas',
   tabletAvailable: 'Tablet',
   planilhaRodagemFilled: 'Planilha Rodagem'
 };
