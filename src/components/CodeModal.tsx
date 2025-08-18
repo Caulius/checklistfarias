@@ -72,7 +72,7 @@ export const CodeModal: React.FC<CodeModalProps> = ({
                 }}
                 className="w-full px-4 py-3 pr-12 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 text-center text-lg font-mono"
                 placeholder="Digite o código"
-                maxLength={7}
+                maxLength={8}
                 required
               />
               <button
