@@ -124,10 +124,6 @@ const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, problems, chec
                       ));
                     })()}
                   </div>
-                    <div class="info-item">
-                        <span class="info-label">Temperatura Programada:</span>
-                        <span class="info-value">{{programmed_temperature}}°C</span>
-                    </div>
                 </div>
               ))}
             </div>
