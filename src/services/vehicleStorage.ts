@@ -1,36 +1,40 @@
 import { Vehicle } from '../types/vehicle';
+import { saveVehicle as saveVehicleFirebase, getVehicles as getVehiclesFirebase, deleteVehicle as deleteVehicleFirebase, getVehicleByPlate as getVehicleByPlateFirebase } from './firebase';
 
-const VEHICLES_STORAGE_KEY = 'registered_vehicles';
-
-export const saveVehicle = (vehicle: Vehicle): void => {
-  const vehicles = getVehicles();
-  const existingIndex = vehicles.findIndex(v => v.licensePlate === vehicle.licensePlate);
-  
-  if (existingIndex >= 0) {
-    vehicles[existingIndex] = vehicle;
-  } else {
-    vehicles.push(vehicle);
+// Todas as operações agora usam diretamente o Firebase
+export const saveVehicle = async (vehicle: Vehicle): Promise<void> => {
+  try {
+    await saveVehicleFirebase(vehicle);
+  } catch (error) {
+    console.error('Erro ao salvar veículo:', error);
+    throw error;
   }
-  
-  localStorage.setItem(VEHICLES_STORAGE_KEY, JSON.stringify(vehicles));
 };
 
-export const getVehicles = (): Vehicle[] => {
+export const getVehicles = async (): Promise<Vehicle[]> => {
   try {
-    const stored = localStorage.getItem(VEHICLES_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    return await getVehiclesFirebase();
   } catch (error) {
     console.error('Erro ao carregar veículos:', error);
-    return [];
+    throw error;
   }
 };
 
-export const deleteVehicle = (licensePlate: string): void => {
-  const vehicles = getVehicles().filter(v => v.licensePlate !== licensePlate);
-  localStorage.setItem(VEHICLES_STORAGE_KEY, JSON.stringify(vehicles));
+export const deleteVehicle = async (vehicleId: string): Promise<void> => {
+  try {
+    await deleteVehicleFirebase(vehicleId);
+  } catch (error) {
+    console.error('Erro ao excluir veículo:', error);
+    throw error;
+  }
 };
 
-export const getVehicleByPlate = (licensePlate: string): Vehicle | undefined => {
-  const vehicles = getVehicles();
-  return vehicles.find(v => v.licensePlate === licensePlate);
+export const getVehicleByPlate = async (licensePlate: string): Promise<Vehicle | undefined> => {
+  try {
+    const vehicle = await getVehicleByPlateFirebase(licensePlate);
+    return vehicle || undefined;
+  } catch (error) {
+    console.error('Erro ao buscar veículo por placa:', error);
+    throw error;
+  }
 };
