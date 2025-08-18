@@ -136,7 +136,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, problems, chec
 
 interface ReportsTabProps {
   checklists: ChecklistData[];
-  onRefresh?: () => void;
+  onRefresh?: () => Promise<void>;
 }
 
 export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh }) => {
