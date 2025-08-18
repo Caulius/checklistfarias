@@ -6,6 +6,13 @@ export const VEHICLE_TYPES = {
   trailer: 'Carreta'
 };
 
+export const PRODUCT_TYPES = {
+  none: 'Sem Produtos',
+  dry: 'Seco',
+  refrigerated: 'Refrigerado',
+  frozen: 'Congelado'
+};
+
 export const EXTERNAL_CHECKS = [
   { key: 'tiresCalibrated', label: 'Pneus calibrados e em boas condições', shortLabel: 'Pneus' },
   { key: 'lightsWorking', label: 'Lanternas e faróis funcionando', shortLabel: 'Lanternas e Faróis' },
@@ -63,6 +70,7 @@ export const FIELD_LABELS = {
   coldChamberClean: 'Baú Limpo',
   refrigeratorMotorOk: 'Motor Refrigeração',
   refrigeratorFuelOk: 'Combustível Refrigerador',
+  productTypes: 'Tipo de Produto Carregado',
   
   // Documentação
   crlvValid: 'CRLV',
