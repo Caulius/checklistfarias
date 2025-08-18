@@ -124,8 +124,7 @@ export const VehicleRegistrationTab: React.FC<VehicleRegistrationTabProps> = ({
         </div>
         <div className="p-6">
           <p className="text-gray-300">
-            Cadastre os veículos da frota para facilitar o preenchimento dos checklists. 
-            Os veículos cadastrados aparecerão como opções na seção "Dados Iniciais".
+            Cadastre os veículos da frota para facilitar o preenchimento dos checklists. Os veículos cadastrados aparecerão como opções na seção "Dados Iniciais".
           </p>
         </div>
       </div>
