@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regras para a coleção de checklists
+    match /checklists/{checklistId} {
+      allow read, write: if true; // Permite leitura e escrita para qualquer um
+    }
+    
+    // Regras para a coleção de veículos
+    match /vehicles/{vehicleId} {
+      allow read, write: if true; // Permite leitura e escrita para qualquer um
+    }
+  }
+}
