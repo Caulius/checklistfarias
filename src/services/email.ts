@@ -1,5 +1,5 @@
 import emailjs from 'emailjs-com';
-import { getFieldLabel, formatDateBR } from '../utils/constants';
+import { getFieldLabel, formatDateBR, PRODUCT_TYPES } from '../utils/constants';
 
 // CONFIGURAÇÃO DO EMAILJS
 const SERVICE_ID = 'service_ynrhfas';
@@ -85,6 +85,9 @@ VERIFICAÇÃO INTERNA:
 SISTEMA DE REFRIGERAÇÃO:
 - Temperatura Inicial: ${checklistData.initialTemperature || 'N/A'}°C
 - Temperatura Programada: ${checklistData.programmedTemperature || 'N/A'}°C
+- Tipo de Produto: ${checklistData.productTypes && checklistData.productTypes.length > 0 
+  ? checklistData.productTypes.map((type: string) => PRODUCT_TYPES[type as keyof typeof PRODUCT_TYPES]).join(', ')
+  : 'Não informado'}
 - Equipamento: ${checklistData.refrigerationWorking ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'refrigerationWorking')}
 - Baú Limpo: ${checklistData.coldChamberClean ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'coldChamberClean')}
 - Motor Refrigeração: ${checklistData.refrigeratorMotorOk ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'refrigeratorMotorOk')}
@@ -120,6 +123,9 @@ ID: ${checklistData.id}
       vehicle_type: getVehicleTypeLabel(checklistData.vehicleType),
       initial_temperature: checklistData.initialTemperature || 'N/A',
       programmed_temperature: checklistData.programmedTemperature || 'N/A',
+      product_types: checklistData.productTypes && checklistData.productTypes.length > 0 
+        ? checklistData.productTypes.map((type: string) => PRODUCT_TYPES[type as keyof typeof PRODUCT_TYPES]).join(', ')
+        : 'Não informado',
       
       // Contadores
       problems_count: checklistData.problems.length,
