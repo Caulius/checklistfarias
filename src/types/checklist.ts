@@ -25,6 +25,7 @@ export interface ChecklistData {
   refrigerationWorking: boolean;
   initialTemperature: number | string | null;
   programmedTemperature: number | string | null;
+  productTypes: string[]; // Array com os tipos de produtos carregados
   coldChamberClean: boolean;
   refrigeratorMotorOk: boolean;
   refrigeratorFuelOk: boolean;
