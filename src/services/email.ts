@@ -132,9 +132,9 @@ ID: ${checklistData.id}
       photos_count: checklistData.problems.reduce((total: number, p: any) => 
         total + (p.photoUrls ? p.photoUrls.length : 0), 0),
       
-      // Controle de exibição de seções
+      // Controle de exibição de seções condicionais
       has_problems: checklistData.problems.length > 0 ? 'show' : '',
-      no_problems: checklistData.problems.length === 0 ? 'show' : '',
+      show_observations: checklistData.generalObservations && checklistData.generalObservations.trim() ? 'show' : '',
       
       // Listas
       problems_list: problemsList,
@@ -143,7 +143,7 @@ ID: ${checklistData.id}
       checklist_summary: checklistSummary,
       checklist_id: checklistData.id,
       
-      // Status dos itens (como texto simples)
+      // Status dos itens (texto simples para compatibilidade com EmailJS)
       tires_status: checklistData.tiresCalibrated ? 'OK' : 'ANOMALIA',
       lights_status: checklistData.lightsWorking ? 'OK' : 'ANOMALIA',
       mirrors_status: checklistData.mirrorsGlassOk ? 'OK' : 'ANOMALIA',
@@ -169,33 +169,6 @@ ID: ${checklistData.id}
       notes_status: checklistData.deliveryNotesAvailable ? 'OK' : 'ANOMALIA',
       tablet_status: checklistData.tabletAvailable ? 'OK' : 'ANOMALIA',
       planilha_rodagem_status: checklistData.planilhaRodagemFilled ? 'OK' : 'ANOMALIA',
-      
-      // Links das fotos formatados para exibir ao lado do status
-      tires_photo_link: getPhotoLink(checklistData.problems, 'tiresCalibrated'),
-      lights_photo_link: getPhotoLink(checklistData.problems, 'lightsWorking'),
-      mirrors_photo_link: getPhotoLink(checklistData.problems, 'mirrorsGlassOk'),
-      bodywork_photo_link: getPhotoLink(checklistData.problems, 'bodyworkOk'),
-      bumpers_photo_link: getPhotoLink(checklistData.problems, 'bumpersOk'),
-      wipers_photo_link: getPhotoLink(checklistData.problems, 'wipersWorking'),
-      
-      fuel_photo_link: getPhotoLink(checklistData.problems, 'fuelLevelOk'),
-      oil_photo_link: getPhotoLink(checklistData.problems, 'engineOilOk'),
-      water_photo_link: getPhotoLink(checklistData.problems, 'waterRadiatorOk'),
-      dashboard_photo_link: getPhotoLink(checklistData.problems, 'dashboardWorking'),
-      extinguisher_photo_link: getPhotoLink(checklistData.problems, 'fireExtinguisherValid'),
-      seatbelts_photo_link: getPhotoLink(checklistData.problems, 'seatbeltsWorking'),
-      
-      refrigeration_photo_link: getPhotoLink(checklistData.problems, 'refrigerationWorking'),
-      chamber_photo_link: getPhotoLink(checklistData.problems, 'coldChamberClean'),
-      motor_photo_link: getPhotoLink(checklistData.problems, 'refrigeratorMotorOk'),
-      fuel_refrigerator_photo_link: getPhotoLink(checklistData.problems, 'refrigeratorFuelOk'),
-      
-      crlv_photo_link: getPhotoLink(checklistData.problems, 'crlvValid'),
-      cnh_photo_link: getPhotoLink(checklistData.problems, 'cnhValid'),
-      documents_photo_link: getPhotoLink(checklistData.problems, 'deliveryDocumentsAvailable'),
-      notes_photo_link: getPhotoLink(checklistData.problems, 'deliveryNotesAvailable'),
-      tablet_photo_link: getPhotoLink(checklistData.problems, 'tabletAvailable'),
-      planilha_rodagem_photo_link: getPhotoLink(checklistData.problems, 'planilhaRodagemFilled')
     };
 
     console.log('Enviando email com parâmetros:', templateParams);
