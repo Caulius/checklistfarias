@@ -8,9 +8,9 @@ import { VehicleRegistrationTab } from './components/VehicleRegistrationTab';
 import { CodeModal } from './components/CodeModal';
 import { ChecklistData, Problem } from './types/checklist';
 import { Vehicle } from './types/vehicle';
-import { saveChecklist, syncChecklistsToLocal } from './services/firebase';
+import { saveChecklist, getChecklists } from './services/firebase';
 import { sendChecklistEmail } from './services/email';
-import { getVehicleByPlate, getVehicles } from './services/vehicleStorage';
+import { getVehicleByPlate, getVehicles } from './services/firebase';
 import { VEHICLE_TYPES, EXTERNAL_CHECKS, INTERNAL_CHECKS, REFRIGERATION_CHECKS, DOCUMENTATION_CHECKS, PRODUCT_TYPES } from './utils/constants';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -26,7 +26,7 @@ function App() {
   const [pendingTab, setPendingTab] = useState<'reports' | 'vehicles' | null>(null);
   const [accessGranted, setAccessGranted] = useState<{reports: boolean, vehicles: boolean}>({
     reports: false,
-    vehicles: false
+    vehicles: true
   });
   const [formData, setFormData] = useState<ChecklistData>({
     // Dados Iniciais
@@ -101,27 +101,32 @@ function App() {
     loadRegisteredVehicles();
   }, []);
 
-  const loadRegisteredVehicles = () => {
-    const vehicles = getVehicles();
-    setRegisteredVehicles(vehicles);
+  const loadRegisteredVehicles = async () => {
+    try {
+      const vehicles = await getVehicles();
+      setRegisteredVehicles(vehicles);
+    } catch (error) {
+      console.error('Erro ao carregar veículos:', error);
+      
+      // Se não conseguir carregar veículos, define lista vazia e mostra aviso menos intrusivo
+      setRegisteredVehicles([]);
+      
+      // Só mostra alert para erros que não sejam de permissão
+      if (!(error instanceof Error && error.message.includes('permissões'))) {
+        console.warn('Não foi possível carregar veículos cadastrados. Você pode cadastrar novos veículos na aba "Cadastro".');
+      }
+    }
   };
 
   const loadChecklists = async () => {
     setSyncingData(true);
     try {
-      const checklists = await syncChecklistsToLocal();
+      const checklists = await getChecklists();
       setSavedChecklists(checklists);
     } catch (error) {
       console.error('Erro ao carregar checklists:', error);
-      // Fallback para localStorage
-      const saved = localStorage.getItem('checklists');
-      if (saved) {
-        try {
-          setSavedChecklists(JSON.parse(saved));
-        } catch (parseError) {
-          console.error('Error parsing saved checklists:', parseError);
-        }
-      }
+      alert('Erro ao carregar checklists. Verifique sua conexão com a internet.');
+      setSavedChecklists([]);
     } finally {
       setSyncingData(false);
     }
@@ -226,7 +231,7 @@ function App() {
       // Save to Firestore
       await saveChecklist(finalData);
 
-      // Recarregar checklists do Firebase
+      // Recarregar checklists
       await loadChecklists();
 
       // Send email
@@ -250,7 +255,7 @@ function App() {
     setActiveTab('checklist');
   };
 
-  const handleLicensePlateChange = (licensePlate: string) => {
+  const handleLicensePlateChange = async (licensePlate: string) => {
     const selectedVehicle = registeredVehicles.find(v => v.licensePlate === licensePlate);
     
     setFormData(prev => ({
@@ -271,12 +276,8 @@ function App() {
   };
 
   const handleVehiclesClick = () => {
-    if (accessGranted.vehicles) {
-      setActiveTab('vehicles');
-    } else {
-      setPendingTab('vehicles');
-      setShowCodeModal(true);
-    }
+    loadRegisteredVehicles();
+    setActiveTab('vehicles');
   };
 
   const handleCodeSuccess = () => {
@@ -284,9 +285,6 @@ function App() {
       setAccessGranted(prev => ({ ...prev, reports: true }));
       loadChecklists();
       setActiveTab('reports');
-    } else if (pendingTab === 'vehicles') {
-      setAccessGranted(prev => ({ ...prev, vehicles: true }));
-      setActiveTab('vehicles');
     }
     setPendingTab(null);
   };
@@ -748,7 +746,7 @@ function App() {
         ) : activeTab === 'vehicles' ? (
           <VehicleRegistrationTab 
             onVehicleSelect={handleVehicleSelect}
-            onVehicleChange={loadRegisteredVehicles}
+            onVehicleChange={() => loadRegisteredVehicles()}
           />
         ) : (
           <ReportsTab checklists={savedChecklists} onRefresh={loadChecklists} />
