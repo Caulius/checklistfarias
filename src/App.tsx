@@ -26,7 +26,7 @@ function App() {
   const [pendingTab, setPendingTab] = useState<'reports' | 'vehicles' | null>(null);
   const [accessGranted, setAccessGranted] = useState<{reports: boolean, vehicles: boolean}>({
     reports: false,
-    vehicles: true
+    vehicles: false
   });
   const [formData, setFormData] = useState<ChecklistData>({
     // Dados Iniciais
@@ -276,8 +276,13 @@ function App() {
   };
 
   const handleVehiclesClick = () => {
-    loadRegisteredVehicles();
-    setActiveTab('vehicles');
+    if (accessGranted.vehicles) {
+      loadRegisteredVehicles();
+      setActiveTab('vehicles');
+    } else {
+      setPendingTab('vehicles');
+      setShowCodeModal(true);
+    }
   };
 
   const handleCodeSuccess = () => {
@@ -285,6 +290,10 @@ function App() {
       setAccessGranted(prev => ({ ...prev, reports: true }));
       loadChecklists();
       setActiveTab('reports');
+    } else if (pendingTab === 'vehicles') {
+      setAccessGranted(prev => ({ ...prev, vehicles: true }));
+      loadRegisteredVehicles();
+      setActiveTab('vehicles');
     }
     setPendingTab(null);
   };
