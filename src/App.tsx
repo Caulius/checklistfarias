@@ -5,7 +5,7 @@ import { CheckboxWithProblem } from './components/CheckboxWithProblem';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { ReportsTab } from './components/ReportsTab';
 import { VehicleRegistrationTab } from './components/VehicleRegistrationTab';
-import { AuthModal } from './components/AuthModal';
+import { CodeModal } from './components/CodeModal';
 import { ChecklistData, Problem } from './types/checklist';
 import { Vehicle } from './types/vehicle';
 import { saveChecklist, syncChecklistsToLocal } from './services/firebase';
@@ -18,12 +18,16 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [activeTab, setActiveTab] = useState<'checklist' | 'reports' | 'vehicles'>('checklist');
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [savedChecklists, setSavedChecklists] = useState<ChecklistData[]>([]);
   const [syncingData, setSyncingData] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState<Set<string>>(new Set());
   const [registeredVehicles, setRegisteredVehicles] = useState<Vehicle[]>([]);
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [pendingTab, setPendingTab] = useState<'reports' | 'vehicles' | null>(null);
+  const [accessGranted, setAccessGranted] = useState<{reports: boolean, vehicles: boolean}>({
+    reports: false,
+    vehicles: false
+  });
   const [formData, setFormData] = useState<ChecklistData>({
     // Dados Iniciais
     date: new Date().toISOString().split('T')[0],
@@ -257,30 +261,39 @@ function App() {
   };
 
   const handleReportsClick = () => {
-    if (!isAuthenticated) {
-      setShowAuthModal(true);
-    } else {
-      // Sincronizar dados ao acessar relatórios
+    if (accessGranted.reports) {
       loadChecklists();
       setActiveTab('reports');
+    } else {
+      setPendingTab('reports');
+      setShowCodeModal(true);
     }
   };
 
   const handleVehiclesClick = () => {
-    if (!isAuthenticated) {
-      setShowAuthModal(true);
-    } else {
+    if (accessGranted.vehicles) {
       setActiveTab('vehicles');
+    } else {
+      setPendingTab('vehicles');
+      setShowCodeModal(true);
     }
   };
 
-  const handleAuthenticate = () => {
-    setIsAuthenticated(true);
-    if (activeTab === 'reports') {
+  const handleCodeSuccess = () => {
+    if (pendingTab === 'reports') {
+      setAccessGranted(prev => ({ ...prev, reports: true }));
       loadChecklists();
-    } else if (activeTab === 'vehicles') {
-      loadRegisteredVehicles();
+      setActiveTab('reports');
+    } else if (pendingTab === 'vehicles') {
+      setAccessGranted(prev => ({ ...prev, vehicles: true }));
+      setActiveTab('vehicles');
     }
+    setPendingTab(null);
+  };
+
+  const handleCodeModalClose = () => {
+    setShowCodeModal(false);
+    setPendingTab(null);
   };
 
   if (submitted) {
@@ -311,10 +324,11 @@ function App() {
       {loading && <LoadingSpinner message="Enviando checklist..." />}
       {syncingData && <LoadingSpinner message="Sincronizando dados..." />}
       
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onAuthenticate={handleAuthenticate}
+      <CodeModal
+        isOpen={showCodeModal}
+        onClose={handleCodeModalClose}
+        onSuccess={handleCodeSuccess}
+        title={pendingTab === 'reports' ? 'Relatórios' : 'Cadastro de Veículos'}
       />
       
       <div className="container mx-auto px-4 py-6 max-w-4xl">
@@ -353,7 +367,7 @@ function App() {
                 }`}
               >
                 <BarChart3 className="h-5 w-5" />
-                <span>Relatórios {syncingData ? '(Sincronizando...)' : ''}</span>
+                <span>Relatórios</span>
               </button>
               <button
                 onClick={handleVehiclesClick}
