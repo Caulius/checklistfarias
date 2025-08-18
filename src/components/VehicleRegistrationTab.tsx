@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Truck, Plus, Edit, Trash2, Save, X, Search } from 'lucide-react';
 import { Vehicle } from '../types/vehicle';
-import { saveVehicle, getVehicles, deleteVehicle } from '../services/vehicleStorage';
+import { saveVehicle, getVehicles, deleteVehicle } from '../services/firebase';
 import { VEHICLE_TYPES } from '../utils/constants';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -27,12 +27,17 @@ export const VehicleRegistrationTab: React.FC<VehicleRegistrationTabProps> = ({
     loadVehicles();
   }, []);
 
-  const loadVehicles = () => {
-    const savedVehicles = getVehicles();
-    setVehicles(savedVehicles);
+  const loadVehicles = async () => {
+    try {
+      const savedVehicles = await getVehicles();
+      setVehicles(savedVehicles);
+    } catch (error) {
+      console.error('Erro ao carregar veículos:', error);
+      alert('Erro ao carregar veículos. Verifique sua conexão.');
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.licensePlate.trim()) {
@@ -40,6 +45,14 @@ export const VehicleRegistrationTab: React.FC<VehicleRegistrationTabProps> = ({
       return;
     }
 
+    // Verificar se já existe um veículo com a mesma placa (apenas para novos)
+    if (!editingVehicle) {
+      const existingVehicle = vehicles.find(v => v.licensePlate === formData.licensePlate.toUpperCase().trim());
+      if (existingVehicle) {
+        alert('Já existe um veículo cadastrado com esta placa.');
+        return;
+      }
+    }
     const vehicle: Vehicle = {
       id: editingVehicle?.id || uuidv4(),
       licensePlate: formData.licensePlate.toUpperCase().trim(),
@@ -48,8 +61,8 @@ export const VehicleRegistrationTab: React.FC<VehicleRegistrationTabProps> = ({
     };
 
     try {
-      saveVehicle(vehicle);
-      loadVehicles();
+      await saveVehicle(vehicle);
+      await loadVehicles();
       onVehicleChange?.(); // Notificar mudança para atualizar o App
       resetForm();
       alert(editingVehicle ? 'Veículo atualizado com sucesso!' : 'Veículo cadastrado com sucesso!');
@@ -68,11 +81,11 @@ export const VehicleRegistrationTab: React.FC<VehicleRegistrationTabProps> = ({
     setShowForm(true);
   };
 
-  const handleDelete = (vehicle: Vehicle) => {
+  const handleDelete = async (vehicle: Vehicle) => {
     if (confirm(`Tem certeza que deseja excluir o veículo ${vehicle.licensePlate}?`)) {
       try {
-        deleteVehicle(vehicle.licensePlate);
-        loadVehicles();
+        await deleteVehicle(vehicle.id);
+        await loadVehicles();
         onVehicleChange?.(); // Notificar mudança para atualizar o App
         alert('Veículo excluído com sucesso!');
       } catch (error) {
