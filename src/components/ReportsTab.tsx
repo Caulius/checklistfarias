@@ -608,7 +608,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
         </div>
         <div className="p-6">
           <p className="text-gray-300">
-            Exporte relatórios detalhados dos checklists realizados com filtros personalizados de data. Os dados são sincronizados automaticamente entre todos os dispositivos.
+            Exporte relatórios detalhados dos checklists realizados com filtros personalizados de data.
           </p>
         </div>
       </div>
