@@ -1,25 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, FileText, Settings, Thermometer, CheckCircle, User, Calendar, BarChart3, Loader2 } from 'lucide-react';
+import { Truck, FileText, Settings, Thermometer, CheckCircle, User, Calendar, BarChart3, Loader2, Plus } from 'lucide-react';
 import { FormSection } from './components/FormSection';
 import { CheckboxWithProblem } from './components/CheckboxWithProblem';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { ReportsTab } from './components/ReportsTab';
+import { VehicleRegistrationTab } from './components/VehicleRegistrationTab';
 import { AuthModal } from './components/AuthModal';
 import { ChecklistData, Problem } from './types/checklist';
+import { Vehicle } from './types/vehicle';
 import { saveChecklist, syncChecklistsToLocal } from './services/firebase';
 import { sendChecklistEmail } from './services/email';
-import { VEHICLE_TYPES, EXTERNAL_CHECKS, INTERNAL_CHECKS, REFRIGERATION_CHECKS, DOCUMENTATION_CHECKS } from './utils/constants';
+import { getVehicleByPlate, getVehicles } from './services/vehicleStorage';
+import { VEHICLE_TYPES, EXTERNAL_CHECKS, INTERNAL_CHECKS, REFRIGERATION_CHECKS, DOCUMENTATION_CHECKS, PRODUCT_TYPES } from './utils/constants';
 import { v4 as uuidv4 } from 'uuid';
 
 function App() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'checklist' | 'reports'>('checklist');
+  const [activeTab, setActiveTab] = useState<'checklist' | 'reports' | 'vehicles'>('checklist');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [savedChecklists, setSavedChecklists] = useState<ChecklistData[]>([]);
   const [syncingData, setSyncingData] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState<Set<string>>(new Set());
+  const [registeredVehicles, setRegisteredVehicles] = useState<Vehicle[]>([]);
   const [formData, setFormData] = useState<ChecklistData>({
     // Dados Iniciais
     date: new Date().toISOString().split('T')[0],
@@ -47,6 +51,7 @@ function App() {
     refrigerationWorking: false,
     initialTemperature: null,
     programmedTemperature: null,
+    productTypes: [],
     coldChamberClean: false,
     refrigeratorMotorOk: false,
     refrigeratorFuelOk: false,
@@ -89,7 +94,13 @@ function App() {
   // Load saved checklists from localStorage
   useEffect(() => {
     loadChecklists();
+    loadRegisteredVehicles();
   }, []);
+
+  const loadRegisteredVehicles = () => {
+    const vehicles = getVehicles();
+    setRegisteredVehicles(vehicles);
+  };
 
   const loadChecklists = async () => {
     setSyncingData(true);
@@ -171,6 +182,11 @@ function App() {
       return false;
     }
 
+    if (formData.productTypes.length === 0) {
+      alert('Por favor, selecione pelo menos um tipo de produto carregado.');
+      return false;
+    }
+
     return true;
   };
 
@@ -221,6 +237,25 @@ function App() {
     }
   };
 
+  const handleVehicleSelect = (vehicle: Vehicle) => {
+    setFormData(prev => ({
+      ...prev,
+      licensePlate: vehicle.licensePlate,
+      vehicleType: vehicle.vehicleType
+    }));
+    setActiveTab('checklist');
+  };
+
+  const handleLicensePlateChange = (licensePlate: string) => {
+    const selectedVehicle = registeredVehicles.find(v => v.licensePlate === licensePlate);
+    
+    setFormData(prev => ({
+      ...prev,
+      licensePlate: licensePlate,
+      vehicleType: selectedVehicle ? selectedVehicle.vehicleType : 'toco'
+    }));
+  };
+
   const handleReportsClick = () => {
     if (!isAuthenticated) {
       setShowAuthModal(true);
@@ -231,10 +266,21 @@ function App() {
     }
   };
 
+  const handleVehiclesClick = () => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+    } else {
+      setActiveTab('vehicles');
+    }
+  };
+
   const handleAuthenticate = () => {
     setIsAuthenticated(true);
-    loadChecklists();
-    setActiveTab('reports');
+    if (activeTab === 'reports') {
+      loadChecklists();
+    } else if (activeTab === 'vehicles') {
+      loadRegisteredVehicles();
+    }
   };
 
   if (submitted) {
@@ -286,10 +332,10 @@ function App() {
           
           {/* Tab Navigation */}
           <div className="flex justify-center mt-6">
-            <div className="bg-gray-800 rounded-lg p-1 border border-gray-700">
+            <div className="bg-gray-800 rounded-lg p-1 border border-gray-700 flex flex-wrap justify-center">
               <button
                 onClick={() => setActiveTab('checklist')}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium transition-all ${
+                className={`flex items-center space-x-2 px-4 py-3 rounded-md font-medium transition-all ${
                   activeTab === 'checklist'
                     ? 'bg-orange-600 text-white shadow-lg'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700'
@@ -300,7 +346,7 @@ function App() {
               </button>
               <button
                 onClick={handleReportsClick}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium transition-all ${
+                className={`flex items-center space-x-2 px-4 py-3 rounded-md font-medium transition-all ${
                   activeTab === 'reports'
                     ? 'bg-orange-600 text-white shadow-lg'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700'
@@ -308,6 +354,17 @@ function App() {
               >
                 <BarChart3 className="h-5 w-5" />
                 <span>Relatórios {syncingData ? '(Sincronizando...)' : ''}</span>
+              </button>
+              <button
+                onClick={handleVehiclesClick}
+                className={`flex items-center space-x-2 px-4 py-3 rounded-md font-medium transition-all ${
+                  activeTab === 'vehicles'
+                    ? 'bg-orange-600 text-white shadow-lg'
+                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                }`}
+              >
+                <Plus className="h-5 w-5" />
+                <span>Cadastro</span>
               </button>
             </div>
           </div>
@@ -355,28 +412,59 @@ function App() {
                 </label>
                 <select
                   value={formData.vehicleType}
-                  onChange={(e) => handleInputChange('vehicleType', e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="w-full px-4 py-3 bg-gray-600 border border-gray-500 text-white rounded-lg cursor-not-allowed"
+                  disabled={true}
                   required
                 >
                   {Object.entries(VEHICLE_TYPES).map(([key, label]) => (
                     <option key={key} value={key}>{label}</option>
                   ))}
                 </select>
+                <p className="text-blue-400 text-sm mt-1">
+                  ℹ️ Tipo definido automaticamente pela placa selecionada
+                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-200 mb-2">
                   Placa do Veículo *
                 </label>
-                <input
-                  type="text"
-                  value={formData.licensePlate}
-                  onChange={(e) => handleInputChange('licensePlate', e.target.value.toUpperCase())}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400"
-                  placeholder="ABC-1234"
-                  required
-                />
+                {registeredVehicles.length > 0 ? (
+                  <select
+                    value={formData.licensePlate}
+                    onChange={(e) => handleLicensePlateChange(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    required
+                  >
+                    <option value="">Selecione um veículo cadastrado</option>
+                    {registeredVehicles
+                      .sort((a, b) => a.licensePlate.localeCompare(b.licensePlate))
+                      .map((vehicle) => (
+                      <option key={vehicle.id} value={vehicle.licensePlate}>
+                        {vehicle.licensePlate} - {VEHICLE_TYPES[vehicle.vehicleType]}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value=""
+                      className="w-full px-4 py-3 bg-gray-600 border border-gray-500 text-gray-400 rounded-lg cursor-not-allowed"
+                      placeholder="Nenhum veículo cadastrado"
+                      disabled
+                      required
+                    />
+                    <p className="text-yellow-400 text-sm">
+                      ⚠️ Cadastre veículos na aba "Cadastro" para poder fazer checklists
+                    </p>
+                  </div>
+                )}
+                {formData.licensePlate && (
+                  <p className="text-green-400 text-sm mt-1">
+                    ✓ Veículo: {formData.licensePlate} - {VEHICLE_TYPES[formData.vehicleType]}
+                  </p>
+                )}
               </div>
             </div>
           </FormSection>
@@ -510,6 +598,49 @@ function App() {
                   Digite a temperatura programada no equipamento
                 </p>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-3">
+                  Tipo de Produto Carregado *
+                </label>
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-400">
+                    Selecione pelo menos um tipo de produto (obrigatório):
+                  </p>
+                  <div className="grid grid-cols-1 gap-3">
+                    {Object.entries(PRODUCT_TYPES).map(([key, label]) => (
+                      <label key={key} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg border border-gray-600 hover:bg-gray-600 transition-colors cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.productTypes.includes(key)}
+                          onChange={(e) => {
+                            const newProductTypes = e.target.checked
+                              ? [...formData.productTypes, key]
+                              : formData.productTypes.filter(type => type !== key);
+                            handleInputChange('productTypes', newProductTypes);
+                          }}
+                          className="h-5 w-5 text-orange-600 bg-gray-600 border-2 border-gray-500 rounded focus:ring-orange-500"
+                        />
+                        <span className="text-gray-100 font-medium">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {formData.productTypes.length > 0 && (
+                    <div className="mt-3 p-3 bg-blue-900/30 border border-blue-700/50 rounded-lg">
+                      <p className="text-blue-300 text-sm font-medium">
+                        ✓ Produtos selecionados: {formData.productTypes.map(type => PRODUCT_TYPES[type as keyof typeof PRODUCT_TYPES]).join(', ')}
+                      </p>
+                    </div>
+                  )}
+                  {formData.productTypes.length === 0 && (
+                    <div className="mt-3 p-3 bg-red-900/30 border border-red-700/50 rounded-lg">
+                      <p className="text-red-300 text-sm font-medium">
+                        ⚠️ Selecione pelo menos um tipo de produto
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </FormSection>
 
@@ -600,6 +731,11 @@ function App() {
             </div>
           </FormSection>
         </form>
+        ) : activeTab === 'vehicles' ? (
+          <VehicleRegistrationTab 
+            onVehicleSelect={handleVehicleSelect}
+            onVehicleChange={loadRegisteredVehicles}
+          />
         ) : (
           <ReportsTab checklists={savedChecklists} onRefresh={loadChecklists} />
         )}
