@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Download, Calendar, Filter, Image, FileSpreadsheet, FileImage, AlertTriangle, CheckCircle, List, Eye, X, RefreshCw } from 'lucide-react';
 import { ChecklistData } from '../types/checklist';
-import { FIELD_LABELS, formatDateBR, getFieldLabel } from '../utils/constants';
+import { FIELD_LABELS, formatDateBR, getFieldLabel, PRODUCT_TYPES } from '../utils/constants';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -274,6 +274,9 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
         'Placa': checklist.licensePlate,
         'Temperatura Inicial': checklist.initialTemperature ? `${checklist.initialTemperature}°C` : 'N/A',
         'Temperatura Programada': checklist.programmedTemperature ? `${checklist.programmedTemperature}°C` : 'N/A',
+        'Tipo de Produto': checklist.productTypes && checklist.productTypes.length > 0 
+          ? checklist.productTypes.map(type => PRODUCT_TYPES[type as keyof typeof PRODUCT_TYPES]).join(', ')
+          : 'Não informado',
         [getFieldLabel('tiresCalibrated')]: checklist.tiresCalibrated ? 'OK' : 'PROBLEMA',
         [getFieldLabel('lightsWorking')]: checklist.lightsWorking ? 'OK' : 'PROBLEMA',
         [getFieldLabel('mirrorsGlassOk')]: checklist.mirrorsGlassOk ? 'OK' : 'PROBLEMA',
@@ -430,6 +433,14 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ checklists, onRefresh })
         pdf.text(`Tipo: ${checklist.vehicleType}`, 20, yPosition);
         pdf.text(`Temperatura: ${checklist.initialTemperature || 'N/A'}°C`, 80, yPosition);
         pdf.text(`Temp. Programada: ${checklist.programmedTemperature || 'N/A'}°C`, 140, yPosition);
+        yPosition += 6;
+        
+        const productTypesText = checklist.productTypes && checklist.productTypes.length > 0 
+          ? checklist.productTypes.map(type => PRODUCT_TYPES[type as keyof typeof PRODUCT_TYPES]).join(', ')
+          : 'Não informado';
+        const productLines = pdf.splitTextToSize(`Produto: ${productTypesText}`, pageWidth - 40);
+        pdf.text(productLines, 20, yPosition);
+        yPosition += productLines.length * 4;
         yPosition += 10;
 
         // Problems
