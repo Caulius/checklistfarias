@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, Timestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { ChecklistData } from '../types/checklist';
+import { Vehicle } from '../types/vehicle';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQQsvgJADYeC3vz__uJmdd5apYxDaHDWc",
@@ -15,9 +16,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-export const saveChecklist = async (data: any) => {
-  const docRef = await addDoc(collection(db, 'checklists'), data);
-  return docRef.id;
+// ===== CHECKLISTS =====
+export const saveChecklist = async (data: ChecklistData): Promise<string> => {
+  try {
+    const docRef = await addDoc(collection(db, 'checklists'), {
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    console.log('Checklist salvo no Firebase com ID:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('Erro ao salvar checklist no Firebase:', error);
+    throw new Error(`Falha ao salvar checklist. Verifique sua conexão com a internet.`);
+  }
 };
 
 export const getChecklists = async (startDate?: string, endDate?: string): Promise<ChecklistData[]> => {
@@ -26,10 +38,6 @@ export const getChecklists = async (startDate?: string, endDate?: string): Promi
     
     // Se datas forem fornecidas, adicionar filtro
     if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      
       q = query(
         collection(db, 'checklists'),
         where('date', '>=', startDate),
@@ -49,26 +57,127 @@ export const getChecklists = async (startDate?: string, endDate?: string): Promi
       } as ChecklistData);
     });
     
+    console.log(`${checklists.length} checklists carregados do Firebase`);
     return checklists;
   } catch (error) {
-    console.error('Erro ao buscar checklists:', error);
-    throw error;
+    console.error('Erro ao buscar checklists no Firebase:', error);
+    throw new Error(`Falha ao carregar checklists. Verifique sua conexão com a internet.`);
   }
 };
 
-export const syncChecklistsToLocal = async (): Promise<ChecklistData[]> => {
+export const updateChecklist = async (id: string, data: Partial<ChecklistData>): Promise<void> => {
   try {
-    const firebaseChecklists = await getChecklists();
-    
-    // Salvar no localStorage para backup
-    localStorage.setItem('checklists', JSON.stringify(firebaseChecklists));
-    
-    return firebaseChecklists;
+    const docRef = doc(db, 'checklists', id);
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: new Date().toISOString()
+    });
+    console.log('Checklist atualizado no Firebase:', id);
   } catch (error) {
-    console.error('Erro ao sincronizar checklists:', error);
+    console.error('Erro ao atualizar checklist no Firebase:', error);
+    throw new Error(`Falha ao atualizar checklist. Verifique sua conexão com a internet.`);
+  }
+};
+
+export const deleteChecklist = async (id: string): Promise<void> => {
+  try {
+    await deleteDoc(doc(db, 'checklists', id));
+    console.log('Checklist excluído do Firebase:', id);
+  } catch (error) {
+    console.error('Erro ao excluir checklist do Firebase:', error);
+    throw new Error(`Falha ao excluir checklist. Verifique sua conexão com a internet.`);
+  }
+};
+
+// ===== VEÍCULOS =====
+export const saveVehicle = async (vehicle: Vehicle): Promise<string> => {
+  try {
+    const docRef = doc(db, 'vehicles', vehicle.id);
+    await setDoc(docRef, {
+      ...vehicle,
+      updatedAt: new Date().toISOString()
+    });
+    console.log('Veículo salvo no Firebase:', vehicle.id);
+    return vehicle.id;
+  } catch (error) {
+    console.error('Erro ao salvar veículo no Firebase:', error);
+    throw new Error(`Falha ao salvar veículo. Verifique sua conexão com a internet.`);
+  }
+};
+
+export const getVehicles = async (): Promise<Vehicle[]> => {
+  try {
+    const q = query(collection(db, 'vehicles'), orderBy('licensePlate', 'asc'));
+    const querySnapshot = await getDocs(q);
+    const vehicles: Vehicle[] = [];
     
-    // Em caso de erro, tentar carregar do localStorage
-    const localChecklists = localStorage.getItem('checklists');
-    return localChecklists ? JSON.parse(localChecklists) : [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      vehicles.push({
+        ...data,
+        id: doc.id
+      } as Vehicle);
+    });
+    
+    console.log(`${vehicles.length} veículos carregados do Firebase`);
+    return vehicles;
+  } catch (error) {
+    console.error('Erro ao buscar veículos no Firebase:', error);
+    
+    // Se for erro de permissão, retorna array vazio em vez de falhar
+    if (error instanceof Error && error.message.includes('Missing or insufficient permissions')) {
+      console.warn('Permissões insuficientes para acessar veículos. Retornando lista vazia.');
+      return [];
+    }
+    
+    // Para outros erros, ainda lança exceção
+    throw new Error(`Falha ao carregar veículos. Verifique sua conexão com a internet.`);
+  }
+};
+
+export const updateVehicle = async (id: string, data: Partial<Vehicle>): Promise<void> => {
+  try {
+    const docRef = doc(db, 'vehicles', id);
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: new Date().toISOString()
+    });
+    console.log('Veículo atualizado no Firebase:', id);
+  } catch (error) {
+    console.error('Erro ao atualizar veículo no Firebase:', error);
+    throw new Error(`Falha ao atualizar veículo. Verifique sua conexão com a internet.`);
+  }
+};
+
+export const deleteVehicle = async (id: string): Promise<void> => {
+  try {
+    await deleteDoc(doc(db, 'vehicles', id));
+    console.log('Veículo excluído do Firebase:', id);
+  } catch (error) {
+    console.error('Erro ao excluir veículo do Firebase:', error);
+    throw new Error(`Falha ao excluir veículo. Verifique sua conexão com a internet.`);
+  }
+};
+
+export const getVehicleByPlate = async (licensePlate: string): Promise<Vehicle | null> => {
+  try {
+    const q = query(
+      collection(db, 'vehicles'), 
+      where('licensePlate', '==', licensePlate)
+    );
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+    
+    const doc = querySnapshot.docs[0];
+    return {
+      ...doc.data(),
+      id: doc.id
+    } as Vehicle;
+  } catch (error) {
+    console.error('Erro ao buscar veículo por placa no Firebase:', error);
+    throw new Error(`Falha ao buscar veículo. Verifique sua conexão com a internet.`);
   }
 };
