@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, FileText, Settings, Thermometer, CheckCircle, User, Calendar, BarChart3, Loader2, Plus } from 'lucide-react';
+import { Truck, FileText, Settings, Thermometer, CheckCircle, User, Calendar, BarChart3, Loader2, Plus, AlertTriangle } from 'lucide-react';
 import { FormSection } from './components/FormSection';
 import { CheckboxWithProblem } from './components/CheckboxWithProblem';
 import { LoadingSpinner } from './components/LoadingSpinner';
@@ -28,6 +28,7 @@ function App() {
     reports: false,
     vehicles: false
   });
+  const [unconfirmedAnomalies, setUnconfirmedAnomalies] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<ChecklistData>({
     // Dados Iniciais
     date: new Date().toISOString().split('T')[0],
@@ -139,16 +140,29 @@ function App() {
     }));
   };
 
-  const handleCheckboxChange = (field: keyof ChecklistData, checked: boolean, problemData?: { description: string; photoUrls?: string[]; isUploading?: boolean }) => {
+  const handleCheckboxChange = (field: keyof ChecklistData, status: 'not_evaluated' | 'ok' | 'problem' | 'unconfirmed_problem', problemDetails?: { description: string; photoUrls?: string[]; isUploading?: boolean }) => {
+    // Atualizar o valor do campo baseado no status
+    const fieldValue = status === 'ok';
     setFormData(prev => ({
       ...prev,
-      [field]: checked
+      [field]: fieldValue
     }));
 
+    // Gerenciar anomalias não confirmadas
+    if (status === 'unconfirmed_problem') {
+      setUnconfirmedAnomalies(prev => new Set([...prev, field]));
+    } else {
+      setUnconfirmedAnomalies(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(field);
+        return newSet;
+      });
+    }
+
     // Gerenciar estado de upload
-    if (problemData?.isUploading === true) {
+    if (problemDetails?.isUploading === true) {
       setUploadingPhotos(prev => new Set([...prev, field]));
-    } else if (problemData?.isUploading === false) {
+    } else if (problemDetails?.isUploading === false) {
       setUploadingPhotos(prev => {
         const newSet = new Set(prev);
         newSet.delete(field);
@@ -156,11 +170,13 @@ function App() {
       });
     }
 
-    if (!checked && problemData) {
+    // Gerenciar problemas
+    if (status === 'problem' && problemDetails && problemDetails.description && problemDetails.description.trim() !== '') {
+      // Adicionar ou atualizar problema
       const newProblem: Problem = {
         itemKey: field,
-        description: problemData.description,
-        photoUrls: problemData.photoUrls || []
+        description: problemDetails.description,
+        photoUrls: problemDetails.photoUrls || []
       };
 
       setFormData(prev => ({
@@ -168,11 +184,45 @@ function App() {
         problems: [...prev.problems.filter(p => p.itemKey !== field), newProblem]
       }));
     } else {
+      // Remover problema se status for 'ok' ou 'unconfirmed_problem'
+      // ou 'not_evaluated'
       setFormData(prev => ({
         ...prev,
         problems: prev.problems.filter(p => p.itemKey !== field)
       }));
     }
+  };
+
+  // Função auxiliar para obter o status atual de um campo
+  const getFieldStatus = (field: keyof ChecklistData): 'not_evaluated' | 'ok' | 'problem' | 'unconfirmed_problem' => {
+    if (unconfirmedAnomalies.has(field)) {
+      return 'unconfirmed_problem';
+    }
+    
+    const fieldValue = formData[field] as boolean;
+    const hasProblem = formData.problems.some(p => p.itemKey === field);
+    
+    if (fieldValue && !hasProblem) {
+      return 'ok';
+    } else if (!fieldValue && hasProblem) {
+      return 'problem';
+    } else if (!fieldValue && !hasProblem) {
+      return 'not_evaluated';
+    }
+    
+    return 'not_evaluated'; // default
+  };
+
+  // Função auxiliar para obter a descrição do problema atual
+  const getCurrentProblemDescription = (field: keyof ChecklistData): string => {
+    const problem = formData.problems.find(p => p.itemKey === field);
+    return problem?.description || '';
+  };
+
+  // Função auxiliar para obter as URLs das fotos atuais
+  const getCurrentPhotoUrls = (field: keyof ChecklistData): string[] => {
+    const problem = formData.problems.find(p => p.itemKey === field);
+    return problem?.photoUrls || [];
   };
 
   const validateForm = (): boolean => {
@@ -186,6 +236,29 @@ function App() {
       return false;
     }
 
+    // Validar se todas as anomalias têm descrição
+    const problemsWithoutDescription = formData.problems.filter(problem => 
+      !problem.description || problem.description.trim() === ''
+    );
+    
+    if (problemsWithoutDescription.length > 0) {
+      alert('Todas as anomalias devem ter uma descrição detalhada do problema. Verifique os itens marcados como "Registrar Anomalia".');
+      return false;
+    }
+
+    // Validar temperaturas apenas se não for "Sem Produtos"
+    if (!formData.productTypes.includes('none')) {
+      if (formData.initialTemperature === null || formData.initialTemperature === undefined || formData.initialTemperature === '') {
+        alert('Por favor, informe a Temperatura Inicial. Este campo é obrigatório quando há produtos carregados.');
+        return false;
+      }
+
+      if (formData.programmedTemperature === null || formData.programmedTemperature === undefined || formData.programmedTemperature === '') {
+        alert('Por favor, informe a Temperatura Programada. Este campo é obrigatório quando há produtos carregados.');
+        return false;
+      }
+    }
+
     if (!formData.declarationAccepted) {
       alert('Por favor, confirme que recebeu o veículo em boas condições.');
       return false;
@@ -196,11 +269,24 @@ function App() {
       return false;
     }
 
+    // Validar se há anomalias não confirmadas
+    if (unconfirmedAnomalies.size > 0) {
+      const unconfirmedFields = Array.from(unconfirmedAnomalies).map(field => {
+        // Buscar o label do campo
+        const allChecks = [...EXTERNAL_CHECKS, ...INTERNAL_CHECKS, ...REFRIGERATION_CHECKS, ...DOCUMENTATION_CHECKS];
+        const checkItem = allChecks.find(check => check.key === field);
+        return checkItem ? checkItem.label : field;
+      });
+      
+      alert(`Existem anomalias não confirmadas nos seguintes itens:\n\n${unconfirmedFields.join('\n')}\n\nPor favor, confirme todas as anomalias antes de finalizar o checklist.`);
+      return false;
+    }
     return true;
   };
 
   const hasUploadingPhotos = uploadingPhotos.size > 0;
-  const isFormDisabled = loading || !formData.declarationAccepted || hasUploadingPhotos;
+  const hasUnconfirmedAnomalies = unconfirmedAnomalies.size > 0;
+  const isFormDisabled = loading || !formData.declarationAccepted || hasUploadingPhotos || hasUnconfirmedAnomalies;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -500,8 +586,10 @@ function App() {
                 <CheckboxWithProblem
                   key={check.key}
                   label={check.label}
-                  checked={formData[check.key as keyof ChecklistData] as boolean}
-                  onChange={(checked, problemData) => handleCheckboxChange(check.key as keyof ChecklistData, checked, problemData)}
+                  currentStatus={getFieldStatus(check.key as keyof ChecklistData)}
+                  currentProblemDescription={getCurrentProblemDescription(check.key as keyof ChecklistData)}
+                  currentPhotoUrls={getCurrentPhotoUrls(check.key as keyof ChecklistData)}
+                  onChange={(status, problemDetails) => handleCheckboxChange(check.key as keyof ChecklistData, status, problemDetails)}
                   itemKey={check.key}
                 />
               ))}
@@ -518,8 +606,10 @@ function App() {
                 <CheckboxWithProblem
                   key={check.key}
                   label={check.label}
-                  checked={formData[check.key as keyof ChecklistData] as boolean}
-                  onChange={(checked, problemData) => handleCheckboxChange(check.key as keyof ChecklistData, checked, problemData)}
+                  currentStatus={getFieldStatus(check.key as keyof ChecklistData)}
+                  currentProblemDescription={getCurrentProblemDescription(check.key as keyof ChecklistData)}
+                  currentPhotoUrls={getCurrentPhotoUrls(check.key as keyof ChecklistData)}
+                  onChange={(status, problemDetails) => handleCheckboxChange(check.key as keyof ChecklistData, status, problemDetails)}
                   itemKey={check.key}
                 />
               ))}
@@ -536,15 +626,17 @@ function App() {
                 <CheckboxWithProblem
                   key={check.key}
                   label={check.label}
-                  checked={formData[check.key as keyof ChecklistData] as boolean}
-                  onChange={(checked, problemData) => handleCheckboxChange(check.key as keyof ChecklistData, checked, problemData)}
+                  currentStatus={getFieldStatus(check.key as keyof ChecklistData)}
+                  currentProblemDescription={getCurrentProblemDescription(check.key as keyof ChecklistData)}
+                  currentPhotoUrls={getCurrentPhotoUrls(check.key as keyof ChecklistData)}
+                  onChange={(status, problemDetails) => handleCheckboxChange(check.key as keyof ChecklistData, status, problemDetails)}
                   itemKey={check.key}
                 />
               ))}
 
               <div>
                 <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Temperatura Inicial (°C)
+                  Temperatura Inicial (°C) {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && <span className="text-red-400">*</span>}
                 </label>
                 <input
                   type="text"
@@ -573,17 +665,24 @@ function App() {
                       }
                     }
                   }}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 text-center text-lg"
-                  placeholder="Ex: -18.5 ou -10.2"
+                  className={`w-full px-4 py-3 bg-gray-700 border text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 text-center text-lg ${
+                    !formData.productTypes.includes('none') && formData.productTypes.length > 0 
+                      ? 'border-orange-500' 
+                      : 'border-gray-600'
+                  }`}
+                  placeholder="Ex: 0, -18.5 ou -10.2"
                 />
                 <p className="mt-2 text-sm text-gray-400">
                   Digite a temperatura exata mostrada no display do veículo
+                  {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && (
+                    <span className="text-orange-400 font-medium"> (Obrigatório)</span>
+                  )}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Temperatura Programada (°C)
+                  Temperatura Programada (°C) {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && <span className="text-red-400">*</span>}
                 </label>
                 <input
                   type="text"
@@ -612,11 +711,18 @@ function App() {
                       }
                     }
                   }}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 text-center text-lg"
-                  placeholder="Ex: -18.0 ou -15.5"
+                  className={`w-full px-4 py-3 bg-gray-700 border text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 text-center text-lg ${
+                    !formData.productTypes.includes('none') && formData.productTypes.length > 0 
+                      ? 'border-orange-500' 
+                      : 'border-gray-600'
+                  }`}
+                  placeholder="Ex: 0, -18.0 ou -15.5"
                 />
                 <p className="mt-2 text-sm text-gray-400">
                   Digite a temperatura programada no equipamento
+                  {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && (
+                    <span className="text-orange-400 font-medium"> (Obrigatório)</span>
+                  )}
                 </p>
               </div>
 
@@ -675,8 +781,10 @@ function App() {
                 <CheckboxWithProblem
                   key={check.key}
                   label={check.label}
-                  checked={formData[check.key as keyof ChecklistData] as boolean}
-                  onChange={(checked, problemData) => handleCheckboxChange(check.key as keyof ChecklistData, checked, problemData)}
+                  currentStatus={getFieldStatus(check.key as keyof ChecklistData)}
+                  currentProblemDescription={getCurrentProblemDescription(check.key as keyof ChecklistData)}
+                  currentPhotoUrls={getCurrentPhotoUrls(check.key as keyof ChecklistData)}
+                  onChange={(status, problemDetails) => handleCheckboxChange(check.key as keyof ChecklistData, status, problemDetails)}
                   itemKey={check.key}
                 />
               ))}
@@ -726,7 +834,8 @@ function App() {
                 }`}
               >
                 {loading ? 'Enviando...' : 
-                 hasUploadingPhotos ? `Aguardando upload das fotos... (${uploadingPhotos.size} pendente${uploadingPhotos.size !== 1 ? 's' : ''})` : 
+                 hasUploadingPhotos ? `Aguardando upload das fotos... (${uploadingPhotos.size} pendente${uploadingPhotos.size !== 1 ? 's' : ''})` :
+                 hasUnconfirmedAnomalies ? `Confirme todas as anomalias (${unconfirmedAnomalies.size} pendente${unconfirmedAnomalies.size !== 1 ? 's' : ''})` :
                  'Finalizar Checklist'}
               </button>
               
@@ -740,6 +849,20 @@ function App() {
                   </div>
                   <p className="text-yellow-200 text-xs mt-1">
                     O checklist será liberado automaticamente quando todas as fotos forem carregadas.
+                  </p>
+                </div>
+              )}
+              
+              {hasUnconfirmedAnomalies && (
+                <div className="mt-3 p-3 bg-red-900/30 border border-red-700/50 rounded-lg">
+                  <div className="flex items-center space-x-2 text-red-300">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Anomalias pendentes - {unconfirmedAnomalies.size} item{unconfirmedAnomalies.size !== 1 ? 's' : ''} aguardando confirmação
+                    </span>
+                  </div>
+                  <p className="text-red-200 text-xs mt-1">
+                    Você deve confirmar todas as anomalias registradas antes de finalizar o checklist.
                   </p>
                 </div>
               )}
