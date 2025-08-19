@@ -640,7 +640,7 @@ function App() {
                 </label>
                 <input
                   type="text"
-                  value={formData.initialTemperature || ''}
+                  value={formData.initialTemperature !== null && formData.initialTemperature !== undefined ? formData.initialTemperature.toString() : ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     // Allow empty string
@@ -686,7 +686,7 @@ function App() {
                 </label>
                 <input
                   type="text"
-                  value={formData.programmedTemperature || ''}
+                  value={formData.programmedTemperature !== null && formData.programmedTemperature !== undefined ? formData.programmedTemperature.toString() : ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     // Allow empty string
