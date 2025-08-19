@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera, AlertTriangle, X, CheckCircle, XCircle, Image, CameraIcon, Upload, Loader2, Plus, Trash2 } from 'lucide-react';
 import { uploadToImgBB, convertFileToBase64 } from '../services/imgbb';
 
 interface CheckboxWithProblemProps {
   label: string;
-  checked: boolean;
-  onChange: (checked: boolean, problemData?: { description: string; photoUrls?: string[]; isUploading?: boolean }) => void;
+  currentStatus: 'not_evaluated' | 'ok' | 'problem' | 'unconfirmed_problem';
+  currentProblemDescription?: string;
+  currentPhotoUrls?: string[];
+  onChange: (status: 'not_evaluated' | 'ok' | 'problem' | 'unconfirmed_problem', problemDetails?: { description: string; photoUrls?: string[]; isUploading?: boolean }) => void;
   itemKey: string;
 }
 
 export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
   label,
-  checked,
+  currentStatus,
+  currentProblemDescription = '',
+  currentPhotoUrls = [],
   onChange,
   itemKey
 }) => {
@@ -20,84 +24,85 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [status, setStatus] = useState<'none' | 'ok' | 'problem'>('none');
   const [uploadProgress, setUploadProgress] = useState<{ [key: number]: boolean }>({});
 
+  // Sincronizar estado interno com props
+  useEffect(() => {
+    if (currentStatus === 'unconfirmed_problem') {
+      setShowProblemForm(true);
+      setProblemDescription(currentProblemDescription);
+    } else {
+      setShowProblemForm(false);
+      setProblemDescription('');
+      setSelectedFiles([]);
+      setPhotoPreviews([]);
+      setUploadProgress({});
+    }
+  }, [currentStatus, currentProblemDescription]);
+
   const handleOkClick = () => {
-    setStatus('ok');
-    setShowProblemForm(false);
-    setProblemDescription('');
-    setSelectedFiles([]);
-    setPhotoPreviews([]);
-    onChange(true);
+    onChange('ok');
   };
 
   const handleProblemClick = () => {
-    setStatus('problem');
-    setShowProblemForm(true);
+    onChange('unconfirmed_problem');
   };
 
   const handleProblemSubmit = async () => {
-    if (problemDescription.trim()) {
-      // Notificar que o upload está iniciando
-      onChange(false, {
-        description: problemDescription,
-        photoUrls: [],
-        isUploading: true
-      });
-      
-      let photoUrls: string[] = [];
-      
-      // Upload images to ImgBB if photos were selected
-      if (selectedFiles.length > 0) {
-        setUploadingImage(true);
-        setUploadProgress({});
-        try {
-          for (let i = 0; i < selectedFiles.length; i++) {
-            const file = selectedFiles[i];
-            setUploadProgress(prev => ({ ...prev, [i]: false }));
-            
-            const base64Image = await convertFileToBase64(file);
-            const uploadedUrl = await uploadToImgBB(base64Image);
-            
-            if (uploadedUrl) {
-              photoUrls.push(uploadedUrl);
-              setUploadProgress(prev => ({ ...prev, [i]: true }));
-            }
-          }
-          
-          if (photoUrls.length === 0 && selectedFiles.length > 0) {
-            alert('Erro ao fazer upload das imagens. O problema será registrado sem fotos.');
-          }
-        } catch (error) {
-          console.error('Erro no upload das imagens:', error);
-          alert('Erro ao fazer upload das imagens. O problema será registrado sem fotos.');
-        } finally {
-          setUploadingImage(false);
-          setUploadProgress({});
-        }
-      }
-      
-      // Notificar que o upload foi concluído
-      onChange(false, {
-        description: problemDescription,
-        photoUrls,
-        isUploading: false
-      });
-      
-      setShowProblemForm(false);
-    } else {
-      alert('Por favor, descreva o problema encontrado.');
+    if (!problemDescription.trim()) {
+      alert('Por favor, descreva o problema encontrado. Este campo é obrigatório.');
+      return;
     }
+    
+    // Notificar que o upload está iniciando
+    onChange('unconfirmed_problem', {
+      description: problemDescription,
+      photoUrls: [],
+      isUploading: true
+    });
+    
+    let photoUrls: string[] = [];
+    
+    // Upload images to ImgBB if photos were selected
+    if (selectedFiles.length > 0) {
+      setUploadingImage(true);
+      setUploadProgress({});
+      try {
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          setUploadProgress(prev => ({ ...prev, [i]: false }));
+          
+          const base64Image = await convertFileToBase64(file);
+          const uploadedUrl = await uploadToImgBB(base64Image);
+          
+          if (uploadedUrl) {
+            photoUrls.push(uploadedUrl);
+            setUploadProgress(prev => ({ ...prev, [i]: true }));
+          }
+        }
+        
+        if (photoUrls.length === 0 && selectedFiles.length > 0) {
+          alert('Erro ao fazer upload das imagens. O problema será registrado sem fotos.');
+        }
+      } catch (error) {
+        console.error('Erro no upload das imagens:', error);
+        alert('Erro ao fazer upload das imagens. O problema será registrado sem fotos.');
+      } finally {
+        setUploadingImage(false);
+        setUploadProgress({});
+      }
+    }
+    
+    // Confirmar o problema
+    onChange('problem', {
+      description: problemDescription,
+      photoUrls,
+      isUploading: false
+    });
   };
 
   const handleProblemCancel = () => {
-    setShowProblemForm(false);
-    setProblemDescription('');
-    setSelectedFiles([]);
-    setPhotoPreviews([]);
-    setStatus('none');
-    setUploadProgress({});
+    onChange('ok');
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,7 +142,7 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
             type="button"
             onClick={handleOkClick}
             className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-all ${
-              status === 'ok'
+              currentStatus === 'ok'
                 ? 'bg-green-600 text-white shadow-lg'
                 : 'bg-gray-700 text-gray-300 hover:bg-green-600 hover:text-white'
             }`}
@@ -150,13 +155,17 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
             type="button"
             onClick={handleProblemClick}
             className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-all ${
-              status === 'problem'
+              currentStatus === 'problem'
                 ? 'bg-red-600 text-white shadow-lg'
+                : currentStatus === 'unconfirmed_problem'
+                ? 'bg-yellow-600 text-white shadow-lg'
                 : 'bg-gray-700 text-gray-300 hover:bg-red-600 hover:text-white'
             }`}
           >
             <XCircle className="h-5 w-5" />
-            <span>Registrar Anomalia</span>
+            <span>
+              {currentStatus === 'unconfirmed_problem' ? 'Anomalia Pendente' : 'Registrar Anomalia'}
+            </span>
           </button>
         </div>
       </div>
@@ -165,7 +174,7 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
         <div className="p-4 bg-red-900/20 border border-red-700/50 rounded-lg space-y-4">
           <div className="flex items-center space-x-2 text-red-400">
             <AlertTriangle className="h-5 w-5" />
-            <span className="font-medium">Descreva o problema encontrado:</span>
+            <span className="font-medium">Descreva o problema encontrado (obrigatório):</span>
           </div>
 
           <textarea
@@ -278,10 +287,16 @@ export const CheckboxWithProblem: React.FC<CheckboxWithProblemProps> = ({
               type="button"
               onClick={handleProblemCancel}
               disabled={uploadingImage}
-              className="flex-1 bg-gray-600 text-gray-100 py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              className="flex-1 bg-gray-600 text-gray-100 py-2 px-4 rounded-lg hover:bg-gray-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors font-medium"
             >
               Cancelar
             </button>
+          </div>
+          
+          <div className="mt-3 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
+            <p className="text-yellow-300 text-sm font-medium">
+              ⚠️ Para registrar uma anomalia, você deve descrever o problema e clicar em "Confirmar Problema"
+            </p>
           </div>
         </div>
       )}
