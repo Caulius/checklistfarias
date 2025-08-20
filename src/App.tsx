@@ -236,6 +236,11 @@ function App() {
       return false;
     }
 
+    if (formData.productTypes.length === 0) {
+      alert('Por favor, selecione pelo menos um tipo de produto carregado.');
+      return false;
+    }
+
     // Validar se todas as anomalias têm descrição
     const problemsWithoutDescription = formData.problems.filter(problem => 
       !problem.description || problem.description.trim() === ''
@@ -264,11 +269,6 @@ function App() {
       return false;
     }
 
-    if (formData.productTypes.length === 0) {
-      alert('Por favor, selecione pelo menos um tipo de produto carregado.');
-      return false;
-    }
-
     // Validar se há anomalias não confirmadas
     if (unconfirmedAnomalies.size > 0) {
       const unconfirmedFields = Array.from(unconfirmedAnomalies).map(field => {
@@ -286,7 +286,8 @@ function App() {
 
   const hasUploadingPhotos = uploadingPhotos.size > 0;
   const hasUnconfirmedAnomalies = unconfirmedAnomalies.size > 0;
-  const isFormDisabled = loading || !formData.declarationAccepted || hasUploadingPhotos || hasUnconfirmedAnomalies;
+  const hasNoProductType = formData.productTypes.length === 0;
+  const isFormDisabled = loading || !formData.declarationAccepted || hasUploadingPhotos || hasUnconfirmedAnomalies || hasNoProductType;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -638,6 +639,11 @@ function App() {
                 <label className="block text-sm font-medium text-gray-200 mb-2">
                   Temperatura Inicial (°C) {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && <span className="text-red-400">*</span>}
                 </label>
+                {formData.productTypes.includes('none') ? (
+                  <div className="w-full px-4 py-3 bg-gray-600 border border-gray-500 text-gray-400 rounded-lg text-center text-lg">
+                    N/A
+                  </div>
+                ) : (
                 <input
                   type="text"
                   value={formData.initialTemperature !== null && formData.initialTemperature !== undefined ? formData.initialTemperature.toString() : ''}
@@ -672,10 +678,17 @@ function App() {
                   }`}
                   placeholder="Ex: 0, -18.5 ou -10.2"
                 />
+                )}
                 <p className="mt-2 text-sm text-gray-400">
-                  Digite a temperatura exata mostrada no display do veículo
-                  {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && (
-                    <span className="text-orange-400 font-medium"> (Obrigatório)</span>
+                  {formData.productTypes.includes('none') ? (
+                    <span className="text-blue-400">Não aplicável para veículos sem produtos</span>
+                  ) : (
+                    <>
+                      Digite a temperatura exata mostrada no display do veículo
+                      {formData.productTypes.length > 0 && (
+                        <span className="text-orange-400 font-medium"> (Obrigatório)</span>
+                      )}
+                    </>
                   )}
                 </p>
               </div>
@@ -684,6 +697,11 @@ function App() {
                 <label className="block text-sm font-medium text-gray-200 mb-2">
                   Temperatura Programada (°C) {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && <span className="text-red-400">*</span>}
                 </label>
+                {formData.productTypes.includes('none') ? (
+                  <div className="w-full px-4 py-3 bg-gray-600 border border-gray-500 text-gray-400 rounded-lg text-center text-lg">
+                    N/A
+                  </div>
+                ) : (
                 <input
                   type="text"
                   value={formData.programmedTemperature !== null && formData.programmedTemperature !== undefined ? formData.programmedTemperature.toString() : ''}
@@ -718,10 +736,17 @@ function App() {
                   }`}
                   placeholder="Ex: 0, -18.0 ou -15.5"
                 />
+                )}
                 <p className="mt-2 text-sm text-gray-400">
-                  Digite a temperatura programada no equipamento
-                  {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && (
-                    <span className="text-orange-400 font-medium"> (Obrigatório)</span>
+                  {formData.productTypes.includes('none') ? (
+                    <span className="text-blue-400">Não aplicável para veículos sem produtos</span>
+                  ) : (
+                    <>
+                      Digite a temperatura programada no equipamento
+                      {formData.productTypes.length > 0 && (
+                        <span className="text-orange-400 font-medium"> (Obrigatório)</span>
+                      )}
+                    </>
                   )}
                 </p>
               </div>
@@ -741,9 +766,28 @@ function App() {
                           type="checkbox"
                           checked={formData.productTypes.includes(key)}
                           onChange={(e) => {
-                            const newProductTypes = e.target.checked
-                              ? [...formData.productTypes, key]
-                              : formData.productTypes.filter(type => type !== key);
+                            let newProductTypes: string[];
+                            
+                            if (key === 'none') {
+                              // Se selecionou "Sem Produtos", desmarcar todos os outros
+                              if (e.target.checked) {
+                                newProductTypes = ['none'];
+                                // Limpar temperaturas quando selecionar "Sem Produtos"
+                                handleInputChange('initialTemperature', null);
+                                handleInputChange('programmedTemperature', null);
+                              } else {
+                                newProductTypes = [];
+                              }
+                            } else {
+                              // Se selecionou outro tipo, remover "Sem Produtos" se estiver selecionado
+                              const currentTypes = formData.productTypes.filter(type => type !== 'none');
+                              if (e.target.checked) {
+                                newProductTypes = [...currentTypes, key];
+                              } else {
+                                newProductTypes = currentTypes.filter(type => type !== key);
+                              }
+                            }
+                            
                             handleInputChange('productTypes', newProductTypes);
                           }}
                           className="h-5 w-5 text-orange-600 bg-gray-600 border-2 border-gray-500 rounded focus:ring-orange-500"
@@ -836,8 +880,23 @@ function App() {
                 {loading ? 'Enviando...' : 
                  hasUploadingPhotos ? `Aguardando upload das fotos... (${uploadingPhotos.size} pendente${uploadingPhotos.size !== 1 ? 's' : ''})` :
                  hasUnconfirmedAnomalies ? `Confirme todas as anomalias (${unconfirmedAnomalies.size} pendente${unconfirmedAnomalies.size !== 1 ? 's' : ''})` :
+                 hasNoProductType ? 'Selecione o tipo de produto carregado' :
                  'Finalizar Checklist'}
               </button>
+              
+              {hasNoProductType && (
+                <div className="mt-3 p-3 bg-red-900/30 border border-red-700/50 rounded-lg">
+                  <div className="flex items-center space-x-2 text-red-300">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Tipo de produto obrigatório
+                    </span>
+                  </div>
+                  <p className="text-red-200 text-xs mt-1">
+                    Você deve selecionar pelo menos um tipo de produto carregado antes de finalizar o checklist.
+                  </p>
+                </div>
+              )}
               
               {hasUploadingPhotos && (
                 <div className="mt-3 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
