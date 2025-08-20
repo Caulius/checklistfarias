@@ -83,8 +83,6 @@ VERIFICAÇÃO INTERNA:
 - Cintos: ${checklistData.seatbeltsWorking ? 'OK' : 'ANOMALIA'}${getPhotoLink(checklistData.problems, 'seatbeltsWorking')}
 
 SISTEMA DE REFRIGERAÇÃO:
-- Temperatura Inicial: ${checklistData.initialTemperature || 'N/A'}°C
-- Temperatura Programada: ${checklistData.programmedTemperature || 'N/A'}°C
 - Temperatura Inicial: ${checklistData.initialTemperature !== null && checklistData.initialTemperature !== undefined ? checklistData.initialTemperature : 'N/A'}°C
 - Temperatura Programada: ${checklistData.programmedTemperature !== null && checklistData.programmedTemperature !== undefined ? checklistData.programmedTemperature : 'N/A'}°C
 - Tipo de Produto: ${checklistData.productTypes && checklistData.productTypes.length > 0 
@@ -123,8 +121,6 @@ ID: ${checklistData.id}
       completion_date: checklistData.completedAt.replace(/\//g, '-'),
       checklist_date: new Date().toLocaleDateString('pt-BR'),
       vehicle_type: getVehicleTypeLabel(checklistData.vehicleType),
-      initial_temperature: checklistData.initialTemperature || 'N/A',
-      programmed_temperature: checklistData.programmedTemperature || 'N/A',
       initial_temperature: checklistData.initialTemperature !== null && checklistData.initialTemperature !== undefined ? checklistData.initialTemperature : 'N/A',
       programmed_temperature: checklistData.programmedTemperature !== null && checklistData.programmedTemperature !== undefined ? checklistData.programmedTemperature : 'N/A',
       product_types: checklistData.productTypes && checklistData.productTypes.length > 0 
