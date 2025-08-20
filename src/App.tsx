@@ -644,47 +644,36 @@ function App() {
                     N/A
                   </div>
                 ) : (
-                <input
-                  type="text"
+                <select
                   value={formData.initialTemperature !== null && formData.initialTemperature !== undefined ? formData.initialTemperature.toString() : ''}
                   onChange={(e) => {
                     const value = e.target.value;
-                    // Allow empty string
                     if (value === '') {
                       handleInputChange('initialTemperature', null);
-                      return;
-                    }
-                    
-                    // Allow only valid temperature patterns: -15, -15.5, -15,5, 15, 15.5, 15,5
-                    if (/^-?\d*[.,]?\d*$/.test(value)) {
-                      // Don't parse incomplete inputs like "-" or "15."
-                      if (value === '-' || value.endsWith('.') || value.endsWith(',')) {
-                        // Just update the display value without parsing
-                        handleInputChange('initialTemperature', value);
-                      } else {
-                        // Parse complete values
-                        const normalizedValue = value.replace(',', '.');
-                        const numericValue = parseFloat(normalizedValue);
-                        if (!isNaN(numericValue)) {
-                          handleInputChange('initialTemperature', numericValue);
-                        }
-                      }
+                    } else {
+                      handleInputChange('initialTemperature', parseFloat(value));
                     }
                   }}
-                  className={`w-full px-4 py-3 bg-gray-700 border text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 text-center text-lg ${
+                  className={`w-full px-4 py-3 bg-gray-700 border text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-center text-lg ${
                     !formData.productTypes.includes('none') && formData.productTypes.length > 0 
                       ? 'border-orange-500' 
                       : 'border-gray-600'
                   }`}
-                  placeholder="Ex: 0, -18.5 ou -10.2"
-                />
+                >
+                  <option value="">Selecione a temperatura</option>
+                  {Array.from({ length: 31 }, (_, i) => i - 15).map(temp => (
+                    <option key={temp} value={temp}>
+                      {temp > 0 ? `+${temp}` : temp}°C
+                    </option>
+                  ))}
+                </select>
                 )}
                 <p className="mt-2 text-sm text-gray-400">
                   {formData.productTypes.includes('none') ? (
                     <span className="text-blue-400">Não aplicável para veículos sem produtos</span>
                   ) : (
                     <>
-                      Digite a temperatura exata mostrada no display do veículo
+                      Selecione a temperatura exata mostrada no display do veículo
                       {formData.productTypes.length > 0 && (
                         <span className="text-orange-400 font-medium"> (Obrigatório)</span>
                       )}
@@ -702,47 +691,36 @@ function App() {
                     N/A
                   </div>
                 ) : (
-                <input
-                  type="text"
+                <select
                   value={formData.programmedTemperature !== null && formData.programmedTemperature !== undefined ? formData.programmedTemperature.toString() : ''}
                   onChange={(e) => {
                     const value = e.target.value;
-                    // Allow empty string
                     if (value === '') {
                       handleInputChange('programmedTemperature', null);
-                      return;
-                    }
-                    
-                    // Allow only valid temperature patterns: -15, -15.5, -15,5, 15, 15.5, 15,5
-                    if (/^-?\d*[.,]?\d*$/.test(value)) {
-                      // Don't parse incomplete inputs like "-" or "15."
-                      if (value === '-' || value.endsWith('.') || value.endsWith(',')) {
-                        // Just update the display value without parsing
-                        handleInputChange('programmedTemperature', value);
-                      } else {
-                        // Parse complete values
-                        const normalizedValue = value.replace(',', '.');
-                        const numericValue = parseFloat(normalizedValue);
-                        if (!isNaN(numericValue)) {
-                          handleInputChange('programmedTemperature', numericValue);
-                        }
-                      }
+                    } else {
+                      handleInputChange('programmedTemperature', parseFloat(value));
                     }
                   }}
-                  className={`w-full px-4 py-3 bg-gray-700 border text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 text-center text-lg ${
+                  className={`w-full px-4 py-3 bg-gray-700 border text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-center text-lg ${
                     !formData.productTypes.includes('none') && formData.productTypes.length > 0 
                       ? 'border-orange-500' 
                       : 'border-gray-600'
                   }`}
-                  placeholder="Ex: 0, -18.0 ou -15.5"
-                />
+                >
+                  <option value="">Selecione a temperatura</option>
+                  {Array.from({ length: 31 }, (_, i) => i - 15).map(temp => (
+                    <option key={temp} value={temp}>
+                      {temp > 0 ? `+${temp}` : temp}°C
+                    </option>
+                  ))}
+                </select>
                 )}
                 <p className="mt-2 text-sm text-gray-400">
                   {formData.productTypes.includes('none') ? (
                     <span className="text-blue-400">Não aplicável para veículos sem produtos</span>
                   ) : (
                     <>
-                      Digite a temperatura programada no equipamento
+                      Selecione a temperatura programada no equipamento
                       {formData.productTypes.length > 0 && (
                         <span className="text-orange-400 font-medium"> (Obrigatório)</span>
                       )}
