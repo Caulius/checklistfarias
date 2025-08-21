@@ -276,8 +276,11 @@ function App() {
       return false;
     }
 
+    // Verificar se apenas "Seco" está selecionado
+    const isDryOnly = formData.productTypes.length === 1 && formData.productTypes.includes('dry');
+
     // Validar temperaturas apenas se não for "Sem Produtos"
-    if (!formData.productTypes.includes('none')) {
+    if (!formData.productTypes.includes('none') && !isDryOnly) {
       if (formData.initialTemperature === null || formData.initialTemperature === undefined || formData.initialTemperature === '') {
         alert('Por favor, informe a Temperatura Inicial. Este campo é obrigatório quando há produtos carregados.');
         return false;
@@ -312,6 +315,10 @@ function App() {
   const hasUploadingPhotos = uploadingPhotos.size > 0;
   const hasUnconfirmedAnomalies = unconfirmedAnomalies.size > 0;
   const hasNoProductType = formData.productTypes.length === 0;
+  
+  // Verificar se apenas "Seco" está selecionado
+  const isDryOnly = formData.productTypes.length === 1 && formData.productTypes.includes('dry');
+  
   const isFormDisabled = loading || !formData.declarationAccepted || hasUploadingPhotos || hasUnconfirmedAnomalies || hasNoProductType;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -662,15 +669,15 @@ function App() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Temperatura Inicial (°C) {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && <span className="text-red-400">*</span>}
+                  Temperatura Inicial (°C) {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && !isDryOnly && <span className="text-red-400">*</span>}
                 </label>
-                {formData.productTypes.includes('none') ? (
+                {formData.productTypes.includes('none') || isDryOnly ? (
                   <div className="w-full px-4 py-3 bg-gray-600 border border-gray-500 text-gray-400 rounded-lg text-center text-lg">
                     N/A
                   </div>
                 ) : (
                 <select
-                  value={formData.initialTemperature !== null && formData.initialTemperature !== undefined ? formData.initialTemperature.toString() : ''}
+                  value={isDryOnly ? '' : (formData.initialTemperature !== null && formData.initialTemperature !== undefined ? formData.initialTemperature.toString() : '')}
                   onChange={(e) => {
                     const value = e.target.value;
                     if (value === '') {
@@ -680,10 +687,11 @@ function App() {
                     }
                   }}
                   className={`w-full px-4 py-3 bg-gray-700 border text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-center text-lg ${
-                    !formData.productTypes.includes('none') && formData.productTypes.length > 0 
+                    !formData.productTypes.includes('none') && formData.productTypes.length > 0 && !isDryOnly
                       ? 'border-orange-500' 
                       : 'border-gray-600'
                   }`}
+                  disabled={isDryOnly}
                 >
                   <option value="">Selecione a temperatura</option>
                   {Array.from({ length: 31 }, (_, i) => i - 15).map(temp => (
@@ -694,7 +702,7 @@ function App() {
                 </select>
                 )}
                 <p className="mt-2 text-sm text-gray-400">
-                  {formData.productTypes.includes('none') ? (
+                  {formData.productTypes.includes('none') || isDryOnly ? (
                     <span className="text-blue-400">Não aplicável para veículos sem produtos</span>
                   ) : (
                     <>
@@ -709,15 +717,15 @@ function App() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Temperatura Programada (°C) {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && <span className="text-red-400">*</span>}
+                  Temperatura Programada (°C) {!formData.productTypes.includes('none') && formData.productTypes.length > 0 && !isDryOnly && <span className="text-red-400">*</span>}
                 </label>
-                {formData.productTypes.includes('none') ? (
+                {formData.productTypes.includes('none') || isDryOnly ? (
                   <div className="w-full px-4 py-3 bg-gray-600 border border-gray-500 text-gray-400 rounded-lg text-center text-lg">
                     N/A
                   </div>
                 ) : (
                 <select
-                  value={formData.programmedTemperature !== null && formData.programmedTemperature !== undefined ? formData.programmedTemperature.toString() : ''}
+                  value={isDryOnly ? '' : (formData.programmedTemperature !== null && formData.programmedTemperature !== undefined ? formData.programmedTemperature.toString() : '')}
                   onChange={(e) => {
                     const value = e.target.value;
                     if (value === '') {
@@ -727,10 +735,11 @@ function App() {
                     }
                   }}
                   className={`w-full px-4 py-3 bg-gray-700 border text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-center text-lg ${
-                    !formData.productTypes.includes('none') && formData.productTypes.length > 0 
+                    !formData.productTypes.includes('none') && formData.productTypes.length > 0 && !isDryOnly
                       ? 'border-orange-500' 
                       : 'border-gray-600'
                   }`}
+                  disabled={isDryOnly}
                 >
                   <option value="">Selecione a temperatura</option>
                   {Array.from({ length: 31 }, (_, i) => i - 15).map(temp => (
@@ -741,8 +750,13 @@ function App() {
                 </select>
                 )}
                 <p className="mt-2 text-sm text-gray-400">
-                  {formData.productTypes.includes('none') ? (
-                    <span className="text-blue-400">Não aplicável para veículos sem produtos</span>
+                  {formData.productTypes.includes('none') || isDryOnly ? (
+                    <span className="text-blue-400">
+                      {formData.productTypes.includes('none') 
+                        ? 'Não aplicável para veículos sem produtos'
+                        : 'Não aplicável para produtos apenas secos'
+                      }
+                    </span>
                   ) : (
                     <>
                       Selecione a temperatura programada no equipamento
@@ -789,6 +803,13 @@ function App() {
                               } else {
                                 newProductTypes = currentTypes.filter(type => type !== key);
                               }
+                            }
+                            
+                            // Verificar se ficou apenas "Seco" selecionado e limpar temperaturas
+                            const willBeDryOnly = newProductTypes.length === 1 && newProductTypes.includes('dry');
+                            if (willBeDryOnly) {
+                              handleInputChange('initialTemperature', null);
+                              handleInputChange('programmedTemperature', null);
                             }
                             
                             handleInputChange('productTypes', newProductTypes);
