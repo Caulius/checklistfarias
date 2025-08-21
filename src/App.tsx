@@ -241,6 +241,31 @@ function App() {
       return false;
     }
 
+    // Validar se há anomalias não registradas (itens com valor false mas sem problema detalhado)
+    const allCheckableItems = [
+      ...EXTERNAL_CHECKS,
+      ...INTERNAL_CHECKS,
+      ...REFRIGERATION_CHECKS,
+      ...DOCUMENTATION_CHECKS
+    ];
+    
+    const unrecordedAnomalies: string[] = [];
+    
+    allCheckableItems.forEach(check => {
+      const fieldValue = formData[check.key as keyof ChecklistData] as boolean;
+      const hasProblemRecord = formData.problems.some(p => p.itemKey === check.key);
+      
+      // Se o item está marcado como false (anomalia) mas não tem um problema registrado
+      if (fieldValue === false && !hasProblemRecord) {
+        unrecordedAnomalies.push(check.label);
+      }
+    });
+    
+    if (unrecordedAnomalies.length > 0) {
+      alert(`Os seguintes itens estão marcados como anomalia mas não possuem descrição do problema:\n\n${unrecordedAnomalies.join('\n')}\n\nPara cada anomalia, você deve:\n• Marcar como "OK" se não há problema, OU\n• Clicar em "Registrar Anomalia", descrever o problema e confirmar\n\nIsso garante que todas as anomalias do relatório tenham explicação detalhada.`);
+      return false;
+    }
+
     // Validar se todas as anomalias têm descrição
     const problemsWithoutDescription = formData.problems.filter(problem => 
       !problem.description || problem.description.trim() === ''
